@@ -2,7 +2,7 @@ use aiken/collection/list
 use aiken/primitive/string
 use cardano/address.{VerificationKey}
 use cardano/assets
-use cardano/transaction.{InlineDatum, OutputReference, Transaction}
+use cardano/transaction.{InlineDatum, OutputReference, Transaction, Validator}
 use store/types.{MBuy, MDelist, MEdit, MVerify, MarketAction, MarketDatum, AIDetails, VerificationResult}
 
 validator market {
@@ -180,4 +180,10 @@ fn validate_ai_metadata(ai_details: AIDetails) -> Bool {
       fn(v) { string.length(v.report_hash) > 0 }
     )?
   }
+}
+
+
+// Add this at the end of your placeholder.ak file
+pub fn market_validator() -> Validator {
+  market
 }
