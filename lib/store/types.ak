@@ -1,6 +1,4 @@
-use aiken/list
-use cardano/address.{VerificationKey}
-use cardano/assets
+// This file defines the types used in the store contract
 
 pub type ModelType {
   TextGeneration

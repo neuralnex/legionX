@@ -1,8 +1,9 @@
-use aiken/list
+use aiken/collection/list
 use cardano/address.{VerificationKey}
 use cardano/assets
+use cardano/script_context.{ScriptContext}
 use cardano/transaction.{
-  InlineDatum, OutputReference, ScriptContext, Transaction,
+  InlineDatum, OutputReference, Transaction,
 }
 use store/types.{AgentMetadata, MarketAction, MarketDatum}
 
