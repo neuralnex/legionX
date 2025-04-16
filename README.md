@@ -1,8 +1,8 @@
 # agentstore
-```Documentation Link
-https://docs.google.com/document/d/1DkkJqAWBc4SLRMDR9UZgvZ6ub5xiANQ44YgERxHL83g/edit?usp=sharing
+# doc
+[https://docs.google.com/document/d/1DkkJqAWBc4SLRMDR9UZgvZ6ub5xiANQ44YgERxHL83g/edit?usp=sharing]
 
-```
+
 
 
 Write validators in the `validators` folder, and supporting functions in the `lib` folder using `.ak` as a file extension.
