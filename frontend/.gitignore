@@ -1,0 +1,43 @@
+# Node
+node_modules/
+npm-debug.log*
+pnpm-debug.log*
+.yarn/
+
+# Next.js
+.next/
+out/
+
+# Build output
+dist/
+build/
+
+# Vercel deployment
+.vercel/
+
+# Local environment variables
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.sw?
+
+# Test coverage
+coverage/
+
+# Misc
+*.tgz
+*.swp
+*.swo
+*.orig
+
