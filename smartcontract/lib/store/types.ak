@@ -1,59 +1,59 @@
-// This file defines the types used in the store contract
-
-pub type ModelType {
-  TextGeneration
-  ImageGeneration
-  AudioProcessing
-  DataAnalysis
-}
-
-pub type LicenseTier {
-  Basic
-  Professional
-  Enterprise
-}
-
-pub type Benchmark {
-  metric: ByteArray,
-  score: Int,
-  dataset: ByteArray,
-}
-
-pub type AgentMetadata {
-  model_id: ByteArray,
-  version: ByteArray,
-  model_type: ModelType,
-  framework: ByteArray,
-  license_tier: LicenseTier,
-  api_endpoint: ByteArray,
-  input_schema: ByteArray,
-  output_schema: ByteArray,
-  ipfs_hash: ByteArray,
-  benchmarks: List<Benchmark>,
-}
-
-pub type RoyaltyInfo {
-  creator_share: Int,
-  // percentage (0-100)
-  creator_address: VerificationKey,
-  platform_share: Int,
-}
-
-// percentage (0-100)
-
+/// Marketplace Listing
 pub type MarketDatum {
-  seller: VerificationKey,
   price: Int,
-  // in lovelace
-  agent_metadata: AgentMetadata,
-  royalties: RoyaltyInfo,
-  created_at: Int,
-  // slot number
-  updated_at: Int,
+  // Subscription Price in USDM (6 decimals like 1_000_000 = 1 USDM)
+  seller: ByteArray,
+  // Seller's VerificationKey hash
+  subscription: Bool,
+  // Is this listing a subscription? (true = subscription, false = full buy only)
+  full_price: Option<Int>,
+  // If subscription, optional full purchase price
+  duration: Option<Int>,
+  // Subscription duration (in months, for example)
+  owner: ByteArray,
 }
 
+// Current owner's VerificationKey hash (buyer or seller)
+
+// If subscription: how long the subscription lasts (in seconds)
+
+/// Actions that can happen on Marketplace
 pub type MarketAction {
-  Purchase
-  Update { new_price: Int, new_metadata: AgentMetadata }
-  Verify { verifier: VerificationKey, report: ByteArray }
+  MBuySub
+  // Buy a subscription access (temporary)
+  MBuyFull
+  // Buy full ownership (permanent)
+  MEdit { price: Int, full_price: Option<Int>, duration: Option<Int> }
+  // Edit prices and subscription duration
+  MDelist
 }
+
+// Remove listing
+
+/// Oracle Live Data
+pub type OracleDatum {
+  exchange: Int,
+  // 1 USDM = exchange lovelace
+  timestamp: Int,
+  // Last update timestamp
+  currency: ByteArray,
+}
+
+// Example: b"USDM"
+
+/// Actions when spending Oracle UTxO
+pub type OracleAction {
+  OUpdate { exchange: Int, timestamp: Int }
+  // Update exchange rate
+  OClose
+}
+
+// Close Oracle (burn token)
+
+/// Actions when minting Oracle Token
+pub type OracleMintAction {
+  OMint { exchange: Int, timestamp: Int, currency: ByteArray }
+  // Mint a new Oracle token
+  OBurn
+}
+// Burn Oracle token

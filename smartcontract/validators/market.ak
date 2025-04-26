@@ -1,143 +1,138 @@
+use aiken/collection/dict
 use aiken/collection/list
+use aiken/primitive/string
 use cardano/address.{VerificationKey}
 use cardano/assets
-use cardano/script_context.{ScriptContext}
-use cardano/transaction.{
-  InlineDatum, OutputReference, Transaction,
-}
-use store/types.{AgentMetadata, MarketAction, MarketDatum}
+use cardano/transaction.{InlineDatum, OutputReference, Transaction}
+use store/types.{MBuyFull, MBuySub, MDelist, MEdit, MarketAction, MarketDatum}
 
+// Marketplace Validator Module
 validator market {
-  spend(datum: Option<MarketDatum>, redeemer: MarketAction, ctx: ScriptContext) {
-    let tx = ctx.transaction
+  spend(
+    datum: Option<MarketDatum>,
+    r: MarketAction,
+    oref: OutputReference,
+    tx: Transaction,
+  ) {
+    trace @"Spending UTxO ..."
 
-    // Extract the MarketDatum from the optional input datum
     expect Some(d) = datum
 
-    // Handle different actions in the marketplace
-    when redeemer is {
-      Purchase -> {
-        // Validate payment to the seller
+    when r is {
+      MBuySub -> {
+        // Buyer pays the subscription price
         expect Some(payment) =
           list.find(
             tx.outputs,
             fn(output) {
-              output.address.payment_credential == VerificationKey(d.seller) && assets.lovelace_of(
-                output.value,
-              ) >= d.price
+              output.address.payment_credential == VerificationKey(d.seller)
             },
           )
 
-        // Validate NFT transfer
-        expect Some(nft_output) =
-          list.find(
-            tx.outputs,
-            fn(output) {
-              when output.datum is {
-                InlineDatum(metadata) -> metadata == d.agent_metadata
-                _ -> False
-              }
-            },
-          )
+        trace string.concat(
+          @"Buying subscription for: ",
+          string.from_int(assets.lovelace_of(payment.value)),
+        )
+
+        let _ = assets.lovelace_of(payment.value) == d.price
+
+        expect Some(duration) = d.duration
       }
 
-      Update { new_price, new_metadata } -> {
-        // Only the seller can update the listing
-        assert
-        list.has(tx.extra_signatories, d.seller)
-        @"Unauthorized: Only the seller can update the listing"
-
-        // Enforce price change limits (±50%)
-        assert
-        new_price <= d.price * 2
-        @"Price increase exceeds 100% limit"
-        assert
-        new_price >= d.price / 2
-        @"Price decrease exceeds 50% limit"
-
-        // Validate the new metadata
-        validate_metadata(new_metadata)?
-
-        // Verify that the output contains the updated listing
-        expect Some(updated_output) =
+      MBuyFull -> {
+        // Buyer pays the full ownership price
+        expect Some(payment) =
           list.find(
             tx.outputs,
             fn(output) {
-              output.address.payment_credential == VerificationKey(d.seller) && when
-                output.datum
-              is {
-                InlineDatum(new_datum) ->
-                  new_datum.seller == d.seller && new_datum.price == new_price && new_datum.agent_metadata == new_metadata
-                _ -> False
-              }
+              output.address.payment_credential == VerificationKey(d.seller)
             },
           )
+
+        trace string.concat(
+          @"Buying full ownership for: ",
+          string.from_int(assets.lovelace_of(payment.value)),
+        )
+
+        let _ =
+          when d.full_price is {
+            Some(fullPrice) -> assets.lovelace_of(payment.value) == fullPrice
+            None -> fail @"No full price set"
+          }
+
+        expect VerificationKey(ownerPkh) = payment.address.payment_credential
+
+        expect Some(ownInput) =
+          list.find(tx.inputs, fn(input) { input.output_reference == oref })
+
+        let oldDatum = ownInput.output.datum
+
+        expect InlineDatum(datum) = oldDatum
+        expect oldMarketDatum: MarketDatum = datum
+
+        expect Some(ownOutput) =
+          list.find(
+            tx.outputs,
+            fn(output) {
+              output.address.payment_credential == ownInput.output.address.payment_credential && output.value == ownInput.output.value
+            },
+          )
+
+        expect InlineDatum(newDatumRaw) = ownOutput.datum
+        expect newDatum: MarketDatum = newDatumRaw
+
+        expect and {
+            newDatum.price == oldMarketDatum.price,
+            newDatum.seller == oldMarketDatum.seller,
+            newDatum.subscription == oldMarketDatum.subscription,
+            newDatum.full_price == oldMarketDatum.full_price,
+            newDatum.duration == oldMarketDatum.duration,
+            newDatum.owner == ownerPkh,
+          }
       }
 
-      Verify { verifier, report } -> {
-        // Ensure the verification report is not empty
-        assert
-        string.length(report) > 0
-        @"Verification report cannot be empty"
+      MEdit { price, full_price, duration } -> {
+        // Seller edits the listing
+        expect Some(ownInput) =
+          list.find(tx.inputs, fn(input) { input.output_reference == oref })
 
-        // Verify fee payment (minimum 5 ADA)
-        expect Some(fee_payment) =
+        let ownHash = ownInput.output.address.payment_credential
+
+        expect Some(ownOutput) =
           list.find(
             tx.outputs,
             fn(output) {
-              output.address.payment_credential == VerificationKey(verifier) && assets.lovelace_of(
-                output.value,
-              ) >= 5_000_000
+              output.address.payment_credential == ownHash && output.value == ownInput.output.value
             },
           )
 
-        // Update the metadata to track verification
-        let updated_metadata = AgentMetadata
-        {
-          d.agent_metadata
-          benchmarks == list.append(
-            d.agent_metadata.benchmarks,
-            [
-              {
-                metric == "verification"
-                score == 1
-                dataset == report
-              },
-            ],
-          )
-        }
+        expect InlineDatum(newDatumRaw) = ownOutput.datum
+        expect newDatum: MarketDatum = newDatumRaw
 
-        // Verify the output contains the updated metadata
-        expect Some(verified_output) =
-          list.find(
-            tx.outputs,
-            fn(output) {
-              when output.datum is {
-                InlineDatum(new_datum) ->
-                  new_datum.agent_metadata == updated_metadata
-                _ -> False
-              }
-            },
-          )
+        trace string.concat(
+          @"Editing price to: ",
+          string.from_int(newDatum.price),
+        )
+
+        expect and {
+            newDatum.seller == d.seller,
+            newDatum.price == price,
+            newDatum.full_price == full_price,
+            newDatum.duration == duration,
+            list.has(tx.extra_signatories, d.seller),
+          }
+      }
+
+      MDelist -> {
+        trace @"Delisting asset"
+        expect list.has(tx.extra_signatories, d.seller)
       }
     }
+
+    True
   }
 
   else(_) {
-    fail
-  }
-}
-
-fn validate_metadata(metadata: AgentMetadata) -> Bool {
-  and {
-    string.length(metadata.model_id) > 0,
-    string.length(metadata.version) > 0,
-    string.length(metadata.api_endpoint) > 0,
-    string.length(metadata.ipfs_hash) > 0,
-    // Validate JSON schemas
-    json.parse(metadata.input_schema) != None,
-    json.parse(metadata.output_schema) != None,
-    // Validate royalty shares
-    metadata.royalties.creator_share + metadata.royalties.platform_share <= 100,
+    False
   }
 }

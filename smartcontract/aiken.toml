@@ -1,6 +1,6 @@
 name = "neuralnex/agentstore"
 version = "0.0.0"
-compiler = "v1.1.15"
+compiler = "v1.1.16"
 plutus = "v3"
 license = "Apache-2.0"
 description = "Aiken contracts for project 'neuralnex/agentstore'"
