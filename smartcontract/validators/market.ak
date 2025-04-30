@@ -1,4 +1,3 @@
-use aiken/collection/dict
 use aiken/collection/list
 use aiken/primitive/string
 use cardano/address.{VerificationKey}
@@ -13,7 +12,7 @@ validator market {
     r: MarketAction,
     oref: OutputReference,
     tx: Transaction,
-  ) {
+  ) -> Bool {
     trace @"Spending UTxO ..."
 
     expect Some(d) = datum
@@ -34,65 +33,80 @@ validator market {
           string.from_int(assets.lovelace_of(payment.value)),
         )
 
-        let _ = assets.lovelace_of(payment.value) == d.price
+        // Ensure the price paid matches the subscription price
+        expect assets.lovelace_of(payment.value) == d.price
 
-        expect Some(duration) = d.duration
+        // Record subscription duration if needed (offchain validation)
+        expect Some(_duration) = d.duration
+
+        True
       }
 
-      MBuyFull -> {
-        // Buyer pays the full ownership price
-        expect Some(payment) =
-          list.find(
-            tx.outputs,
-            fn(output) {
-              output.address.payment_credential == VerificationKey(d.seller)
-            },
-          )
+MBuyFull -> {
+  expect Some(payment) =
+    list.find(
+      tx.outputs,
+      fn(output) {
+        output.address.payment_credential == VerificationKey(d.seller)
+      },
+    )
 
-        trace string.concat(
-          @"Buying full ownership for: ",
-          string.from_int(assets.lovelace_of(payment.value)),
-        )
+  trace string.concat(
+    @"Buying full ownership for: ",
+    string.from_int(assets.lovelace_of(payment.value)),
+  )
 
-        let _ =
-          when d.full_price is {
-            Some(fullPrice) -> assets.lovelace_of(payment.value) == fullPrice
-            None -> fail @"No full price set"
-          }
+  expect when d.full_price is {
+    Some(fullPrice) -> assets.lovelace_of(payment.value) == fullPrice
+    None -> fail @"No full price set"
+  }
 
-        expect VerificationKey(ownerPkh) = payment.address.payment_credential
+  expect VerificationKey(ownerPkh) = payment.address.payment_credential
 
-        expect Some(ownInput) =
-          list.find(tx.inputs, fn(input) { input.output_reference == oref })
+  expect Some(ownInput) =
+    list.find(tx.inputs, fn(input) { input.output_reference == oref })
 
-        let oldDatum = ownInput.output.datum
+  let oldDatum = ownInput.output.datum
 
-        expect InlineDatum(datum) = oldDatum
-        expect oldMarketDatum: MarketDatum = datum
+  expect InlineDatum(datum) = oldDatum
+  expect oldMarketDatum: MarketDatum = datum
 
-        expect Some(ownOutput) =
-          list.find(
-            tx.outputs,
-            fn(output) {
-              output.address.payment_credential == ownInput.output.address.payment_credential && output.value == ownInput.output.value
-            },
-          )
+  expect Some(ownOutput) =
+    list.find(
+      tx.outputs,
+      fn(output) {
+        output.address.payment_credential == ownInput.output.address.payment_credential &&
+        output.value == ownInput.output.value
+      },
+    )
 
-        expect InlineDatum(newDatumRaw) = ownOutput.datum
-        expect newDatum: MarketDatum = newDatumRaw
+  expect InlineDatum(newDatumRaw) = ownOutput.datum
+  expect newDatum: MarketDatum = newDatumRaw
 
-        expect and {
-            newDatum.price == oldMarketDatum.price,
-            newDatum.seller == oldMarketDatum.seller,
-            newDatum.subscription == oldMarketDatum.subscription,
-            newDatum.full_price == oldMarketDatum.full_price,
-            newDatum.duration == oldMarketDatum.duration,
-            newDatum.owner == ownerPkh,
-          }
-      }
+  expect Some(_buyerOutput) =
+    list.find(
+      tx.outputs,
+      fn(output) {
+        output.address.payment_credential == VerificationKey(ownerPkh) &&
+        output.value == ownInput.output.value
+      },
+    )
+
+  expect and {
+    newDatum.price == oldMarketDatum.price,
+    newDatum.seller == oldMarketDatum.seller,
+    newDatum.subscription == oldMarketDatum.subscription,
+    newDatum.full_price == oldMarketDatum.full_price,
+    newDatum.duration == oldMarketDatum.duration,
+    newDatum.owner == ownerPkh
+  }
+
+  True
+}
+
 
       MEdit { price, full_price, duration } -> {
-        // Seller edits the listing
+        // Seller edits the listing (update price or subscription details)
         expect Some(ownInput) =
           list.find(tx.inputs, fn(input) { input.output_reference == oref })
 
@@ -115,24 +129,26 @@ validator market {
         )
 
         expect and {
-            newDatum.seller == d.seller,
-            newDatum.price == price,
-            newDatum.full_price == full_price,
-            newDatum.duration == duration,
-            list.has(tx.extra_signatories, d.seller),
-          }
+          newDatum.seller == d.seller,
+          newDatum.price == price,
+          newDatum.full_price == full_price,
+          newDatum.duration == duration,
+          list.has(tx.extra_signatories, d.seller)
+        }
+
+        True
       }
 
       MDelist -> {
         trace @"Delisting asset"
         expect list.has(tx.extra_signatories, d.seller)
+
+        True
       }
     }
-
-    True
   }
 
   else(_) {
-    False
+    fail
   }
 }

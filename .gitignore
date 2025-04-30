@@ -6,3 +6,4 @@ build/
 docs/
 .vscode/
 node_modules/
+.env

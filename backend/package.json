@@ -1,0 +1,30 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@lucid-evolution/lucid": "^0.4.27",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "pg": "^8.15.6",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.22"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.15.3",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}

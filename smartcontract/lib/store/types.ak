@@ -1,12 +1,15 @@
 /// Marketplace Listing
 pub type MarketDatum {
   price: Int,
+  full_price: Option<Int>,
+  // Price in USDM (6 decimals like 1_000_000 = 1 USDM)
+  // If subscription, optional full purchase price
   // Subscription Price in USDM (6 decimals like 1_000_000 = 1 USDM)
   seller: ByteArray,
   // Seller's VerificationKey hash
-  subscription: Bool,
+  subscription: Option<ByteArray>,
+  // NFT policy ID (if subscription)
   // Is this listing a subscription? (true = subscription, false = full buy only)
-  full_price: Option<Int>,
   // If subscription, optional full purchase price
   duration: Option<Int>,
   // Subscription duration (in months, for example)

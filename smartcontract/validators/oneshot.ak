@@ -1,6 +1,6 @@
 use aiken/collection/dict
 use aiken/collection/list
-use aiken/collection/pairs
+//use aiken/collection/pairs
 use cardano/assets.{PolicyId}
 use cardano/transaction.{OutputReference, Transaction}
 
