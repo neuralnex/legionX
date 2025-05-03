@@ -1,6 +1,10 @@
-# agentstore
-# doc
+# LegionX
+# doc on-chain
+[https://drive.google.com/file/d/1QyBgkJI0wxLhwOgXeNAtee1WcGGIHHXm/view?usp=sharing]
+
+#doc off-chain
 [https://docs.google.com/document/d/1DkkJqAWBc4SLRMDR9UZgvZ6ub5xiANQ44YgERxHL83g/edit?usp=sharing]
+
 
 
 
