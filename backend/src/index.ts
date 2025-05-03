@@ -1,23 +1,31 @@
-import 'reflect-metadata';
-import express from 'express';
-import dotenv from 'dotenv';
-import { AppDataSource } from './config/data_source';
+import express from "express";
+import apiRoutes from './routes';
+import dotenv from "dotenv";
+import cors from "cors";
+import { AppDataSource } from "./db/data-source";
+import authRoutes from './routes/auth';
+import { authMiddleware } from "./middleware/auth";
+import { startDBsyncMonitor } from "./dbsync";
+startDBsyncMonitor();
+
 
 dotenv.config();
+
 const app = express();
-const port = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3000;
 
+app.use(cors());
 app.use(express.json());
-
-app.get('/', (_, res) => {
-  res.send('Marketplace Backend is Running!');
-});
+app.use("/api", apiRoutes);
+app.use('/auth', authRoutes);
 
 AppDataSource.initialize()
   .then(() => {
-    console.log('📦 PostgreSQL Connected via TypeORM');
-    app.listen(port, () => {
-      console.log(`🚀 Server running on http://localhost:${port}`);
+    console.log("Database connected");
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
     });
   })
-  .catch((error) => console.error('Database connection error:', error));
+  .catch((error) => {
+    console.error("Database connection error:", error);
+  });

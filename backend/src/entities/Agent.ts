@@ -1,10 +1,16 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { User } from './User';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from "typeorm";
+import { User } from "./User";
 
 @Entity()
 export class Agent {
-  @PrimaryGeneratedColumn()
-  id!: number;
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
 
   @Column()
   name!: string;
@@ -13,15 +19,12 @@ export class Agent {
   description!: string;
 
   @Column()
-  ipfsHash!: string;
+  modelVersion!: string;
 
-  @ManyToOne(() => User, (user) => user.id)
-  owner!: User;
+  @Column()
+  metadataUri!: string;
 
-  constructor(name: string, description: string, ipfsHash: string, owner: User) {
-    this.name = name;
-    this.description = description;
-    this.ipfsHash = ipfsHash;
-    this.owner = owner;
-  }
+  @ManyToOne(() => User, (user) => user.agents)
+  @JoinColumn({ name: "creator_id" })
+  creator!: User;
 }

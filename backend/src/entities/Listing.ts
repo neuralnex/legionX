@@ -1,35 +1,60 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { Agent } from './Agent';
+// src/entities/Listing.ts
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
+import { User } from "./User";
 
 @Entity()
 export class Listing {
-  @PrimaryGeneratedColumn()
-  id!: number;
+  @PrimaryGeneratedColumn("uuid")
+  id: string;
 
-  @ManyToOne(() => Agent, (agent) => agent.id)
-  agent!: Agent;
+  @ManyToOne(() => User, (user) => user.listings)
+  seller!: User;
+
+  policyId: string;
 
   @Column()
-  price!: number;
+  assetName: string;
+
+  @Column()
+  unit: string;
+
+  @Column()
+  metadataUri: string;
+
+  @Column()
+  price: number;
+
+  @Column()
+  fullPrice: number;
+
+  @Column()
+  duration: number;
 
   @Column({ nullable: true })
-  fullPrice?: number;
+  agent?: string;
 
   @Column({ nullable: true })
-  duration?: number;
+  txHash?: string;
 
   @Column()
-  type!: 'subscription' | 'ownership';
+  sellerAddress: string;
 
-  @Column()
-  listedAt!: Date;
+  @ManyToOne(() => User, (user) => user.listings)
+  user: User;
+  
+  @ManyToOne(() => User, (user) => user.id)
+  owner: User;
 
-  constructor(agent: Agent, price: number, type: 'subscription' | 'ownership', listedAt: Date, fullPrice?: number, duration?: number) {
-    this.agent = agent;
-    this.price = price;
-    this.type = type;
-    this.listedAt = listedAt;
-    this.fullPrice = fullPrice;
-    this.duration = duration;
-  }
+  //@Column({ default: "active" })
+  //status: "active" | "sold" | "cancelled";
+
+  @Column({ nullable: true })
+  subscriptionId?: string;
+
+  @Column({ type: "varchar" })
+  status: "active" | "sold" | "cancelled" | "confirmed";
+
+
+  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  createdAt: Date;
 }
