@@ -4,6 +4,9 @@ use aiken/collection/pairs
 use cardano/address.{Script}
 use cardano/assets.{PolicyId}
 use cardano/transaction.{InlineDatum, OutputReference, Transaction}
+use oracle_constants.{
+  validate_datum, validate_mint_action, validate_update_action,
+}
 use store/types.{
   OBurn, OClose, OMint, OUpdate, OracleAction, OracleDatum, OracleMintAction,
 }
@@ -14,6 +17,9 @@ validator oracle(oneshot_ref: OutputReference) {
   mint(r: OracleMintAction, p: PolicyId, tx: Transaction) {
     let Transaction { inputs, outputs, mint, .. } = tx
 
+    // Validate mint action
+    expect validate_mint_action(r)
+
     // Mint exactly one token
     expect [Pair(tokenName, tokenQty)] =
       mint
@@ -22,7 +28,7 @@ validator oracle(oneshot_ref: OutputReference) {
 
     when r is {
       OMint { exchange, timestamp, currency } -> {
-        expect Some(in) =
+        expect Some(_in) =
           list.find(inputs, fn(input) { input.output_reference == oneshot_ref })
 
         expect Some(tokenOut) =
@@ -41,6 +47,9 @@ validator oracle(oneshot_ref: OutputReference) {
 
         expect InlineDatum(d) = tokenOut.datum
         expect oracleDatum: OracleDatum = d
+
+        // Validate the new datum
+        expect validate_datum(oracleDatum)
 
         and {
           tokenName == "",
@@ -63,12 +72,17 @@ validator oracle(oneshot_ref: OutputReference) {
     let Transaction { inputs, outputs, mint, .. } = tx
 
     expect Some(d) = datum
+    // Validate existing datum
+    expect validate_datum(d)
 
     expect Some(ownInput) =
       list.find(inputs, fn(input) { input.output_reference == oref })
 
     let ownCredential = ownInput.output.address.payment_credential
     expect Script(scriptHash) = ownCredential
+
+    // Validate update action
+    expect validate_update_action(r, d)
 
     when r is {
       OUpdate { exchange, timestamp } -> {
@@ -82,6 +96,9 @@ validator oracle(oneshot_ref: OutputReference) {
 
         expect InlineDatum(outDatumRaw) = ownOut.datum
         expect outDatum: OracleDatum = outDatumRaw
+
+        // Validate the new datum
+        expect validate_datum(outDatum)
 
         and {
           outDatum.exchange == exchange,
