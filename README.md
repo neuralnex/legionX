@@ -192,7 +192,18 @@ aiken test
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+The Apache License 2.0 is a permissive license that allows you to:
+- Use the software for any purpose
+- Modify the software
+- Distribute the software
+- Distribute modified versions
+- Use the software commercially
+- Use the software privately
+- Use patent claims licensed to the user
+
+For more information about the Apache License 2.0, visit [https://www.apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
 ## 🙏 Acknowledgments
 
