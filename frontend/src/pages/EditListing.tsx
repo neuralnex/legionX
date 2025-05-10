@@ -1,47 +1,66 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { listingService } from '../services/api';
 import { Listing } from '../types';
 
+interface FormData {
+  title: string;
+  description: string;
+  type: 'SALE' | 'RENT';
+  category: 'GAMING' | 'WORKSTATION' | 'MINING';
+  price: {
+    subscription: number;
+    full: number;
+  };
+  specifications: {
+    cpu: string;
+    gpu: string;
+    ram: string;
+    storage: string;
+    motherboard: string;
+    powerSupply: string;
+  };
+  images: (string | File)[];
+}
+
 const EditListing: React.FC = () => {
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [formData, setFormData] = useState({
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
-    price: '',
-    type: 'SALE' as Listing['type'],
-    category: 'GAMING' as Listing['category'],
+    type: 'SALE',
+    category: 'GAMING',
+    price: {
+      subscription: 0,
+      full: 0
+    },
     specifications: {
       cpu: '',
       gpu: '',
       ram: '',
       storage: '',
       motherboard: '',
-      powerSupply: '',
+      powerSupply: ''
     },
-    images: [] as File[],
+    images: []
   });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchListing();
+    if (id) {
+      fetchListing();
+    }
   }, [id]);
 
   const fetchListing = async () => {
     try {
-      const response = await listingService.getListing(id!);
-      const listing = response.data;
+      const data = await listingService.getListing(id!);
       setFormData({
-        title: listing.title,
-        description: listing.description,
-        price: listing.price.toString(),
-        type: listing.type,
-        category: listing.category,
-        specifications: listing.specifications,
-        images: [],
+        ...data,
+        images: data.images || []
       });
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch listing');
@@ -52,20 +71,23 @@ const EditListing: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setSaving(true);
-
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append('title', formData.title);
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('price', formData.price);
-      formDataToSend.append('type', formData.type);
-      formDataToSend.append('category', formData.category);
-      formDataToSend.append('specifications', JSON.stringify(formData.specifications));
-      
-      formData.images.forEach((image) => {
-        formDataToSend.append('images', image);
+      (Object.entries(formData) as [keyof FormData, FormData[keyof FormData]][]).forEach(([key, value]) => {
+        if (key === 'price' || key === 'specifications') {
+          formDataToSend.append(key, JSON.stringify(value));
+        } else if (key === 'images') {
+          (value as (string | File)[]).forEach((file: string | File) => {
+            if (file instanceof File) {
+              formDataToSend.append('images', file);
+            } else if (typeof file === 'string') {
+              formDataToSend.append('existingImages', file);
+            }
+          });
+        } else if (typeof value === 'string') {
+          formDataToSend.append(key, value);
+        }
       });
 
       await listingService.updateListing(id!, formDataToSend);
@@ -77,19 +99,45 @@ const EditListing: React.FC = () => {
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    if (name.startsWith('specifications.')) {
+      const specField = name.split('.')[1];
+      setFormData(prev => ({
+        ...prev,
+        specifications: {
+          ...prev.specifications,
+          [specField]: value
+        }
+      }));
+    } else if (name.startsWith('price.')) {
+      const priceField = name.split('.')[1];
+      setFormData(prev => ({
+        ...prev,
+        price: {
+          ...prev.price,
+          [priceField]: parseFloat(value)
+        }
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFormData({
-        ...formData,
-        images: Array.from(e.target.files),
-      });
+      const newFiles = Array.from(e.target.files);
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...newFiles]
+      }));
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center">Loading...</div>
         </div>
       </div>
@@ -98,247 +146,301 @@ const EditListing: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="md:flex md:items-center md:justify-between mb-8">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              Edit Listing
-            </h2>
+      <div className="max-w-7xl mx-auto">
+        <div className="md:grid md:grid-cols-3 md:gap-6">
+          <div className="md:col-span-1">
+            <div className="px-4 sm:px-0">
+              <h3 className="text-lg font-medium leading-6 text-gray-900">Edit Listing</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                Update your listing information here.
+              </p>
+            </div>
           </div>
-        </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="bg-white shadow sm:rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <div className="grid grid-cols-1 gap-6">
-                <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-                    Title
-                  </label>
-                  <input
-                    type="text"
-                    name="title"
-                    id="title"
-                    required
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                    Description
-                  </label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    rows={3}
-                    required
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="price" className="block text-sm font-medium text-gray-700">
-                    Price
-                  </label>
-                  <div className="mt-1 relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <span className="text-gray-500 sm:text-sm">$</span>
+          <div className="mt-5 md:mt-0 md:col-span-2">
+            <form onSubmit={handleSubmit}>
+              <div className="shadow sm:rounded-md sm:overflow-hidden">
+                <div className="px-4 py-5 bg-white space-y-6 sm:p-6">
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+                      {error}
                     </div>
+                  )}
+
+                  <div>
+                    <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+                      Title
+                    </label>
                     <input
-                      type="number"
-                      name="price"
-                      id="price"
+                      type="text"
+                      name="title"
+                      id="title"
+                      value={formData.title}
+                      onChange={handleChange}
                       required
-                      min="0"
-                      step="0.01"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
+                      className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                     />
                   </div>
-                </div>
 
-                <div>
-                  <label htmlFor="type" className="block text-sm font-medium text-gray-700">
-                    Type
-                  </label>
-                  <select
-                    id="type"
-                    name="type"
-                    required
-                    value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value as Listing['type'] })}
-                    className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                  >
-                    <option value="SALE">Sale</option>
-                    <option value="RENT">Rent</option>
-                  </select>
-                </div>
+                  <div>
+                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                      Description
+                    </label>
+                    <textarea
+                      id="description"
+                      name="description"
+                      rows={3}
+                      value={formData.description}
+                      onChange={handleChange}
+                      required
+                      className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                    />
+                  </div>
 
-                <div>
-                  <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                    Category
-                  </label>
-                  <select
-                    id="category"
-                    name="category"
-                    required
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value as Listing['category'] })}
-                    className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                  >
-                    <option value="GAMING">Gaming</option>
-                    <option value="WORKSTATION">Workstation</option>
-                    <option value="MINING">Mining</option>
-                  </select>
-                </div>
+                  <div>
+                    <label htmlFor="type" className="block text-sm font-medium text-gray-700">
+                      Type
+                    </label>
+                    <select
+                      id="type"
+                      name="type"
+                      value={formData.type}
+                      onChange={handleChange}
+                      required
+                      className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    >
+                      <option value="SALE">Sale</option>
+                      <option value="RENT">Rent</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Specifications</label>
-                  <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+                      Category
+                    </label>
+                    <select
+                      id="category"
+                      name="category"
+                      value={formData.category}
+                      onChange={handleChange}
+                      required
+                      className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    >
+                      <option value="GAMING">Gaming</option>
+                      <option value="WORKSTATION">Workstation</option>
+                      <option value="MINING">Mining</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div>
-                      <label htmlFor="cpu" className="block text-sm font-medium text-gray-700">
+                      <label htmlFor="price.subscription" className="block text-sm font-medium text-gray-700">
+                        Subscription Price (per month)
+                      </label>
+                      <input
+                        type="number"
+                        name="price.subscription"
+                        id="price.subscription"
+                        value={formData.price.subscription}
+                        onChange={handleChange}
+                        required
+                        min="0"
+                        step="0.01"
+                        className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="price.full" className="block text-sm font-medium text-gray-700">
+                        Full Purchase Price
+                      </label>
+                      <input
+                        type="number"
+                        name="price.full"
+                        id="price.full"
+                        value={formData.price.full}
+                        onChange={handleChange}
+                        required
+                        min="0"
+                        step="0.01"
+                        className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="specifications.cpu" className="block text-sm font-medium text-gray-700">
                         CPU
                       </label>
                       <input
                         type="text"
-                        name="cpu"
-                        id="cpu"
-                        required
+                        name="specifications.cpu"
+                        id="specifications.cpu"
                         value={formData.specifications.cpu}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            specifications: { ...formData.specifications, cpu: e.target.value },
-                          })
-                        }
+                        onChange={handleChange}
+                        required
                         className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                       />
                     </div>
+
                     <div>
-                      <label htmlFor="gpu" className="block text-sm font-medium text-gray-700">
+                      <label htmlFor="specifications.gpu" className="block text-sm font-medium text-gray-700">
                         GPU
                       </label>
                       <input
                         type="text"
-                        name="gpu"
-                        id="gpu"
-                        required
+                        name="specifications.gpu"
+                        id="specifications.gpu"
                         value={formData.specifications.gpu}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            specifications: { ...formData.specifications, gpu: e.target.value },
-                          })
-                        }
+                        onChange={handleChange}
+                        required
                         className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                       />
                     </div>
+
                     <div>
-                      <label htmlFor="ram" className="block text-sm font-medium text-gray-700">
+                      <label htmlFor="specifications.ram" className="block text-sm font-medium text-gray-700">
                         RAM
                       </label>
                       <input
                         type="text"
-                        name="ram"
-                        id="ram"
-                        required
+                        name="specifications.ram"
+                        id="specifications.ram"
                         value={formData.specifications.ram}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            specifications: { ...formData.specifications, ram: e.target.value },
-                          })
-                        }
+                        onChange={handleChange}
+                        required
                         className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                       />
                     </div>
+
                     <div>
-                      <label htmlFor="storage" className="block text-sm font-medium text-gray-700">
+                      <label htmlFor="specifications.storage" className="block text-sm font-medium text-gray-700">
                         Storage
                       </label>
                       <input
                         type="text"
-                        name="storage"
-                        id="storage"
-                        required
+                        name="specifications.storage"
+                        id="specifications.storage"
                         value={formData.specifications.storage}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            specifications: { ...formData.specifications, storage: e.target.value },
-                          })
-                        }
+                        onChange={handleChange}
+                        required
+                        className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="specifications.motherboard" className="block text-sm font-medium text-gray-700">
+                        Motherboard
+                      </label>
+                      <input
+                        type="text"
+                        name="specifications.motherboard"
+                        id="specifications.motherboard"
+                        value={formData.specifications.motherboard}
+                        onChange={handleChange}
+                        required
+                        className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="specifications.powerSupply" className="block text-sm font-medium text-gray-700">
+                        Power Supply
+                      </label>
+                      <input
+                        type="text"
+                        name="specifications.powerSupply"
+                        id="specifications.powerSupply"
+                        value={formData.specifications.powerSupply}
+                        onChange={handleChange}
+                        required
                         className="mt-1 focus:ring-primary-500 focus:border-primary-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                       />
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Images</label>
-                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                    <div className="space-y-1 text-center">
-                      <svg
-                        className="mx-auto h-12 w-12 text-gray-400"
-                        stroke="currentColor"
-                        fill="none"
-                        viewBox="0 0 48 48"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <div className="flex text-sm text-gray-600">
-                        <label
-                          htmlFor="file-upload"
-                          className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Images</label>
+                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                      <div className="space-y-1 text-center">
+                        <svg
+                          className="mx-auto h-12 w-12 text-gray-400"
+                          stroke="currentColor"
+                          fill="none"
+                          viewBox="0 0 48 48"
+                          aria-hidden="true"
                         >
-                          <span>Upload files</span>
-                          <input
-                            id="file-upload"
-                            name="file-upload"
-                            type="file"
-                            multiple
-                            accept="image/*"
-                            className="sr-only"
-                            onChange={handleImageChange}
+                          <path
+                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                            strokeWidth={2}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                           />
-                        </label>
-                        <p className="pl-1">or drag and drop</p>
+                        </svg>
+                        <div className="flex text-sm text-gray-600">
+                          <label
+                            htmlFor="file-upload"
+                            className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
+                          >
+                            <span>Upload files</span>
+                            <input
+                              id="file-upload"
+                              name="file-upload"
+                              type="file"
+                              multiple
+                              accept="image/*"
+                              className="sr-only"
+                              onChange={handleImageChange}
+                            />
+                          </label>
+                          <p className="pl-1">or drag and drop</p>
+                        </div>
+                        <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
                       </div>
-                      <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                      {formData.images.map((image, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={typeof image === 'string' ? image : URL.createObjectURL(image)}
+                            alt={`Listing image ${index + 1}`}
+                            className="h-24 w-full object-cover rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 focus:outline-none"
+                            onClick={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                images: prev.images.filter((_, i) => i !== index)
+                              }));
+                            }}
+                          >
+                            <span className="sr-only">Remove image</span>
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
+
+                <div className="px-4 py-3 bg-gray-50 text-right sm:px-6">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  >
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="px-4 py-3 bg-gray-50 text-right sm:px-6">
-              <button
-                type="submit"
-                disabled={saving}
-                className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

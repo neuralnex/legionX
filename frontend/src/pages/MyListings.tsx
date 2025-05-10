@@ -14,8 +14,8 @@ const MyListings: React.FC = () => {
 
   const fetchListings = async () => {
     try {
-      const response = await listingService.getMyListings();
-      setListings(response.data);
+      const data = await listingService.getMyListings();
+      setListings(data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch listings');
     } finally {
@@ -24,13 +24,11 @@ const MyListings: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this listing?')) {
-      return;
-    }
+    if (!window.confirm('Are you sure you want to delete this listing?')) return;
 
     try {
       await listingService.deleteListing(id);
-      setListings(listings.filter(listing => listing.id !== id));
+      setListings(listings.filter((listing) => listing.id !== id));
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to delete listing');
     }
@@ -46,68 +44,95 @@ const MyListings: React.FC = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center text-red-600">{error}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Listings</h1>
-          <Link
-            to="/create-listing"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
-          >
-            Create New Listing
-          </Link>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">
-            {error}
+        <div className="md:flex md:items-center md:justify-between mb-8">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+              My Listings
+            </h2>
           </div>
-        )}
+          <div className="mt-4 flex md:mt-0 md:ml-4">
+            <Link
+              to="/create-listing"
+              className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              Create Listing
+            </Link>
+          </div>
+        </div>
 
         {listings.length === 0 ? (
           <div className="text-center py-12">
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No listings</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No listings found</h3>
             <p className="mt-1 text-sm text-gray-500">Get started by creating a new listing.</p>
+            <div className="mt-6">
+              <Link
+                to="/create-listing"
+                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                Create Listing
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {listings.map((listing) => (
               <div
                 key={listing.id}
-                className="bg-white overflow-hidden shadow rounded-lg divide-y divide-gray-200"
+                className="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow duration-200"
               >
-                <div className="p-6">
+                <div className="aspect-w-16 aspect-h-9">
+                  <img
+                    src={listing.images[0]}
+                    alt={listing.title}
+                    className="w-full h-48 object-cover"
+                  />
+                </div>
+                <div className="p-4">
                   <h3 className="text-lg font-medium text-gray-900">{listing.title}</h3>
-                  <p className="mt-1 text-sm text-gray-500">{listing.description}</p>
-                  <div className="mt-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <p className="mt-1 text-sm text-gray-500 line-clamp-2">{listing.description}</p>
+                  <div className="mt-4 flex justify-between items-center">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        ${listing.price.subscription}/month
+                      </p>
+                      <p className="text-sm text-gray-500">Full: ${listing.price.full}</p>
+                    </div>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        listing.type === 'SALE'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-blue-100 text-blue-800'
+                      }`}
+                    >
                       {listing.type}
                     </span>
-                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {listing.status}
-                    </span>
                   </div>
-                </div>
-                <div className="px-6 py-4 bg-gray-50">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-900">
-                      ${listing.price.toFixed(2)}
-                    </span>
-                    <div className="flex space-x-3">
-                      <Link
-                        to={`/edit-listing/${listing.id}`}
-                        className="text-sm font-medium text-primary-600 hover:text-primary-500"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(listing.id)}
-                        className="text-sm font-medium text-red-600 hover:text-red-500"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                  <div className="mt-4 flex justify-end space-x-2">
+                    <Link
+                      to={`/listings/${listing.id}/edit`}
+                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    >
+                      Edit
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(listing.id)}
+                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               </div>

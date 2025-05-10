@@ -11,12 +11,21 @@ export interface Listing {
   id: string;
   title: string;
   description: string;
-  price: number;
+  price: {
+    subscription: number;
+    full: number;
+  };
   type: 'SALE' | 'RENT';
   category: 'GAMING' | 'WORKSTATION' | 'MINING';
   specifications: {
-    [key: string]: string;
+    cpu: string;
+    gpu: string;
+    ram: string;
+    storage: string;
+    motherboard: string;
+    powerSupply: string;
   };
+  capabilities: string[];
   images: string[];
   seller: User;
   buyer?: User;
