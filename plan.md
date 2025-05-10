@@ -6,7 +6,7 @@ LegionX is a decentralized marketplace for AI model access rights, built on Card
 ## Technology Stack
 - **Frontend**: HeroUI (React-based)
 - **Backend**: Lucid-evolution (TypeScript)
-- **Storage**: Iagon (IPFS)
+- **Storage**: Pinata (IPFS)
 - **Database**: DBSync (PostgreSQL)
 - **Blockchain**: Cardano
 
