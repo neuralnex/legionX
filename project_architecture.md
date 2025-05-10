@@ -12,7 +12,7 @@ LegionX is a decentralized marketplace for AI models and tools, built on blockch
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │                 │     │                 │     │                 │
 │  Smart Contracts│◄────┤  Backend API    │◄────┤  Frontend App   │
-│  (Blockchain)   │     │  (Node.js)      │     │  (React)        │
+│  (Blockchain)   │     │  (Lucid)        │     │  (HeroUI)       │
 │                 │     │                 │     │                 │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
         ▲                       ▲                        ▲
@@ -20,8 +20,8 @@ LegionX is a decentralized marketplace for AI models and tools, built on blockch
         │                       │                        │
         ▼                       ▼                        ▼
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Blockchain     │     │  Database       │     │  User Browser   │
-│  Network        │     │  (PostgreSQL)   │     │                 │
+│  Blockchain     │     │  PostgreSQL     │     │  User Browser   │
+│  Network        │     │  (DbSync)       │     │                 │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
 
@@ -37,8 +37,8 @@ LegionX is a decentralized marketplace for AI models and tools, built on blockch
 
 ### 2. Listing Creation
 1. User submits listing through frontend
-2. Frontend uploads images to backend
-3. Backend stores listing data in database
+2. Frontend uploads images to Pinata IPFS
+3. Backend stores listing data in PostgreSQL via DbSync
 4. Backend creates listing NFT on blockchain
 5. Backend updates database with NFT details
 6. Frontend displays new listing
@@ -46,7 +46,7 @@ LegionX is a decentralized marketplace for AI models and tools, built on blockch
 ### 3. Purchase Flow
 1. User initiates purchase through frontend
 2. Frontend requests purchase from backend
-3. Backend creates purchase record
+3. Backend creates purchase record in PostgreSQL
 4. Backend initiates blockchain transaction
 5. Smart contract handles payment and NFT transfer
 6. Backend updates purchase status
@@ -61,18 +61,16 @@ LegionX is a decentralized marketplace for AI models and tools, built on blockch
 - Web3.js
 
 ### Backend
-- Node.js
-- Express
-- TypeScript
-- PostgreSQL
-- TypeORM
+- Lucid Evolution (TypeScript)
+- DbSync for PostgreSQL
+- Pinata for IPFS
 - JWT Authentication
+- Express.js
 
 ### Frontend
-- React
+- HeroUI
 - TypeScript
 - Vite
-- TailwindCSS
 - Web3.js
 - Axios
 
@@ -88,6 +86,7 @@ LegionX is a decentralized marketplace for AI models and tools, built on blockch
    - Rate limiting
    - Input sanitization
    - CORS protection
+   - IPFS content validation
 
 3. Frontend Security
    - XSS prevention
@@ -103,13 +102,14 @@ LegionX is a decentralized marketplace for AI models and tools, built on blockch
    - Update backend integration
 
 2. Backend Development
-   - API implementation
-   - Database schema
+   - API implementation with Lucid
+   - DbSync schema management
+   - Pinata IPFS integration
    - Integration tests
    - Security audits
 
 3. Frontend Development
-   - UI/UX implementation
+   - HeroUI implementation
    - API integration
    - Wallet connection
    - Testing
@@ -121,7 +121,9 @@ LegionX is a decentralized marketplace for AI models and tools, built on blockch
    - Update contract addresses
 
 2. Backend
-   - Deploy to cloud provider
+   - Deploy Lucid application
+   - Configure DbSync
+   - Set up Pinata credentials
    - Configure environment
    - Set up monitoring
    - Enable SSL
@@ -141,6 +143,8 @@ LegionX is a decentralized marketplace for AI models and tools, built on blockch
 
 2. Backend
    - API monitoring
+   - DbSync performance
+   - IPFS content availability
    - Error tracking
    - Performance metrics
    - Database maintenance
