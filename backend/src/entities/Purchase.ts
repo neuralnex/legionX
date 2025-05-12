@@ -4,31 +4,34 @@ import { Listing } from './Listing';
 
 @Entity()
 export class Purchase {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @ManyToOne(() => Listing, listing => listing.purchases)
-  listing: Listing;
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
 
   @ManyToOne(() => User, user => user.purchases)
-  buyer: User;
+  buyer!: User;
 
-  @Column()
-  txHash: string;
+  @ManyToOne(() => Listing, listing => listing.purchases)
+  listing!: Listing;
 
-  @Column('decimal', { precision: 20, scale: 6 })
-  amount: string;
+  @Column('decimal', { precision: 20, scale: 0 })
+  amount!: bigint;
 
   @Column({
     type: 'enum',
-    enum: ['pending', 'confirmed'],
+    enum: ['pending', 'completed', 'failed'],
     default: 'pending'
   })
-  status: 'pending' | 'confirmed';
+  status!: 'pending' | 'completed' | 'failed';
+
+  @Column({ nullable: true })
+  txHash!: string;
+
+  @Column({ nullable: true })
+  confirmations!: number;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 } 

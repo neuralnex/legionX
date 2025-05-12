@@ -1,156 +1,293 @@
-# LegionX Project Architecture
+# Project Architecture Documentation
 
-## System Overview
-LegionX is a decentralized marketplace for AI models and tools, built on blockchain technology. The system consists of three main components:
+## System Architecture Overview
 
-1. Smart Contracts (Blockchain Layer)
-2. Backend API (Application Layer)
-3. Frontend Application (Presentation Layer)
-
-## Architecture Diagram
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│                 │     │                 │     │                 │
-│  Smart Contracts│◄────┤  Backend API    │◄────┤  Frontend App   │
-│  (Blockchain)   │     │  (Lucid)        │     │  (HeroUI)       │
-│                 │     │                 │     │                 │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-        ▲                       ▲                        ▲
-        │                       │                        │
-        │                       │                        │
-        ▼                       ▼                        ▼
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Blockchain     │     │  PostgreSQL     │     │  User Browser   │
-│  Network        │     │  (DbSync)       │     │                 │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
+### High-Level Architecture
+```mermaid
+graph TD
+    A[Frontend - React/HeroUI] -->|API Calls| B[Backend - Node.js/TypeScript]
+    B -->|Blockchain Interaction| C[Cardano Network]
+    B -->|Metadata Storage| D[IPFS/Pinata]
+    B -->|Data Storage| E[PostgreSQL]
+    B -->|Caching| F[Redis]
 ```
 
-## Component Interaction Flow
+## Component Architecture
 
-### 1. User Authentication
-1. User connects wallet through frontend
-2. Frontend sends wallet address to backend
-3. Backend verifies wallet signature
-4. Backend creates/updates user record
-5. Backend issues JWT token
-6. Frontend stores token for authenticated requests
+### 1. Frontend Layer
+```
+Frontend/
+├── Components/
+│   ├── Agents/
+│   ├── Marketplace/
+│   ├── Wallet/
+│   └── Common/
+├── Pages/
+├── Hooks/
+├── Stores/
+└── Utils/
+```
 
-### 2. Listing Creation
-1. User submits listing through frontend
-2. Frontend uploads images to Pinata IPFS
-3. Backend stores listing data in PostgreSQL via DbSync
-4. Backend creates listing NFT on blockchain
-5. Backend updates database with NFT details
-6. Frontend displays new listing
+#### Key Technologies:
+- React with TypeScript
+- HeroUI Component Library
+- TailwindCSS for styling
+- Framer Motion for animations
+- React Query for data fetching
+- Zustand for state management
 
-### 3. Purchase Flow
-1. User initiates purchase through frontend
-2. Frontend requests purchase from backend
-3. Backend creates purchase record in PostgreSQL
-4. Backend initiates blockchain transaction
-5. Smart contract handles payment and NFT transfer
-6. Backend updates purchase status
-7. Frontend shows purchase confirmation
+### 2. Backend Layer
+```
+Backend/
+├── src/
+│   ├── controllers/
+│   ├── services/
+│   ├── entities/
+│   ├── middlewares/
+│   ├── utils/
+│   └── config/
+├── tests/
+└── docs/
+```
 
-## Technology Stack
+#### Key Technologies:
+- Node.js with TypeScript
+- Express.js framework
+- TypeORM for database
+- Lucid Evolution for Cardano
+- JWT for authentication
+- WebSocket for real-time
 
-### Smart Contracts
-- Solidity
-- Hardhat
-- OpenZeppelin
-- Web3.js
+### 3. Blockchain Layer
+```
+Blockchain/
+├── contracts/
+│   ├── marketplace/
+│   ├── access/
+│   └── token/
+├── scripts/
+└── tests/
+```
 
-### Backend
-- Lucid Evolution (TypeScript)
-- DbSync for PostgreSQL
-- Pinata for IPFS
-- JWT Authentication
-- Express.js
+#### Key Technologies:
+- Cardano blockchain
+- Plutus smart contracts
+- Lucid Evolution SDK
+- Blockfrost API
 
-### Frontend
-- HeroUI
-- TypeScript
-- Vite
-- Web3.js
-- Axios
+### 4. Storage Layer
+```
+Storage/
+├── Database/
+│   ├── migrations/
+│   ├── seeds/
+│   └── models/
+├── Cache/
+└── IPFS/
+```
 
-## Security Considerations
-1. Smart Contract Security
-   - Access control
-   - Reentrancy protection
-   - Input validation
-   - Emergency stops
+#### Key Technologies:
+- PostgreSQL for relational data
+- Redis for caching
+- IPFS/Pinata for metadata
+- S3 for file storage
 
-2. Backend Security
-   - JWT authentication
-   - Rate limiting
-   - Input sanitization
-   - CORS protection
-   - IPFS content validation
+## Service Architecture
 
-3. Frontend Security
-   - XSS prevention
-   - CSRF protection
-   - Secure storage
-   - Input validation
+### 1. Core Services
 
-## Development Workflow
-1. Smart Contract Development
-   - Write and test contracts
-   - Deploy to testnet
-   - Verify contracts
-   - Update backend integration
+#### Agent Service
+- Agent creation and management
+- Metadata handling
+- Access control
+- Usage tracking
 
-2. Backend Development
-   - API implementation with Lucid
-   - DbSync schema management
-   - Pinata IPFS integration
-   - Integration tests
-   - Security audits
+#### Marketplace Service
+- Listing management
+- Purchase processing
+- Price management
+- Transaction handling
 
-3. Frontend Development
-   - HeroUI implementation
-   - API integration
-   - Wallet connection
-   - Testing
+#### Wallet Service
+- Wallet connection
+- Transaction signing
+- Balance checking
+- Address management
 
-## Deployment Strategy
-1. Smart Contracts
-   - Deploy to mainnet
-   - Verify contracts
-   - Update contract addresses
+### 2. Support Services
 
-2. Backend
-   - Deploy Lucid application
-   - Configure DbSync
-   - Set up Pinata credentials
-   - Configure environment
-   - Set up monitoring
-   - Enable SSL
+#### Authentication Service
+- User authentication
+- JWT management
+- Session handling
+- Role management
 
-3. Frontend
-   - Build production version
-   - Deploy to CDN
-   - Configure environment
-   - Enable caching
+#### Notification Service
+- Transaction notifications
+- System alerts
+- User notifications
+- Email notifications
 
-## Monitoring and Maintenance
-1. Smart Contracts
-   - Transaction monitoring
-   - Gas usage tracking
-   - Event logging
-   - Emergency response
+#### Monitoring Service
+- Transaction monitoring
+- System health checks
+- Performance monitoring
+- Error tracking
 
-2. Backend
-   - API monitoring
-   - DbSync performance
-   - IPFS content availability
-   - Error tracking
-   - Performance metrics
-   - Database maintenance
+## Data Architecture
 
-3. Frontend
-   - Error tracking
-   - Performance monitoring
-   - User analytics
-   - Cache management 
+### 1. Database Schema
+
+#### Users
+```sql
+CREATE TABLE users (
+    id UUID PRIMARY KEY,
+    wallet_address VARCHAR(255) UNIQUE,
+    email VARCHAR(255),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+```
+
+#### Agents
+```sql
+CREATE TABLE agents (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255),
+    description TEXT,
+    metadata_uri VARCHAR(255),
+    creator_id UUID,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+```
+
+#### Listings
+```sql
+CREATE TABLE listings (
+    id UUID PRIMARY KEY,
+    agent_id UUID,
+    price DECIMAL,
+    type VARCHAR(50),
+    status VARCHAR(50),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+```
+
+### 2. Cache Structure
+
+#### Session Cache
+```typescript
+interface SessionCache {
+  userId: string;
+  token: string;
+  permissions: string[];
+  expiresAt: number;
+}
+```
+
+#### Transaction Cache
+```typescript
+interface TransactionCache {
+  txHash: string;
+  status: string;
+  confirmations: number;
+  lastChecked: number;
+}
+```
+
+## Security Architecture
+
+### 1. Authentication Flow
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant Blockchain
+    
+    User->>Frontend: Connect Wallet
+    Frontend->>Blockchain: Request Signature
+    Blockchain-->>Frontend: Signed Message
+    Frontend->>Backend: Verify Signature
+    Backend-->>Frontend: JWT Token
+```
+
+### 2. Authorization Matrix
+
+| Role | Create Agent | Purchase | Manage Listings | Access API |
+|------|-------------|-----------|----------------|------------|
+| User | ❌ | ✅ | ❌ | ✅ |
+| Creator | ✅ | ✅ | ✅ | ✅ |
+| Admin | ✅ | ✅ | ✅ | ✅ |
+
+## Deployment Architecture
+
+### 1. Infrastructure
+```mermaid
+graph TD
+    A[Load Balancer] -->|Route| B[Frontend Servers]
+    A -->|Route| C[Backend Servers]
+    C -->|Connect| D[Database Cluster]
+    C -->|Connect| E[Cache Cluster]
+    C -->|Connect| F[Blockchain Node]
+```
+
+### 2. Environment Configuration
+
+#### Development
+```env
+NODE_ENV=development
+API_URL=http://localhost:3000
+DB_URL=postgresql://localhost:5432/dev
+REDIS_URL=redis://localhost:6379
+```
+
+#### Production
+```env
+NODE_ENV=production
+API_URL=https://api.example.com
+DB_URL=postgresql://prod:5432/prod
+REDIS_URL=redis://prod:6379
+```
+
+## Monitoring Architecture
+
+### 1. Metrics Collection
+- API response times
+- Error rates
+- Transaction success rates
+- Resource utilization
+
+### 2. Logging Structure
+- Application logs
+- Error logs
+- Access logs
+- Transaction logs
+
+### 3. Alerting System
+- Error thresholds
+- Performance alerts
+- Security alerts
+- Usage alerts
+
+## Future Architecture Considerations
+
+### 1. Scalability
+- Microservices migration
+- Database sharding
+- Load balancing
+- CDN integration
+
+### 2. Performance
+- Caching strategies
+- Query optimization
+- Asset optimization
+- Network optimization
+
+### 3. Security
+- Multi-factor authentication
+- Advanced encryption
+- Rate limiting
+- DDoS protection 

@@ -1,22 +1,22 @@
-import { Router, RequestHandler } from 'express';
+import { Router, Request, Response } from 'express';
 import { AccessController } from '../controllers/access.controller';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth.middleware';
 
-const router = Router();
+const router: Router = Router();
 const accessController = new AccessController();
 
 // All routes are protected
 router.use(authMiddleware);
 
-const getMetadataHandler: RequestHandler = async (req, res) => {
+const getMetadataHandler = async (req: Request, res: Response) => {
   await accessController.getMetadata(req, res);
 };
 
-const verifyAccessHandler: RequestHandler = async (req, res) => {
+const verifyAccessHandler = async (req: Request, res: Response) => {
   await accessController.verifyAccess(req, res);
 };
 
-router.get('/metadata/:assetId', getMetadataHandler);
-router.get('/verify/:assetId', verifyAccessHandler);
+router.get('/metadata/:listingId', getMetadataHandler);
+router.get('/verify/:listingId', verifyAccessHandler);
 
 export default router; 

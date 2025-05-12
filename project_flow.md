@@ -1,161 +1,185 @@
-# LegionX Project Flow
+# Project Flow Documentation
 
-## System Architecture Overview
+## System Overview
+The AI Agent Marketplace is a decentralized platform that enables users to create, list, purchase, and manage AI agents using NFTs on the Cardano blockchain.
 
+## Core Flows
+
+### 1. Agent Creation and Listing Flow
 ```mermaid
 graph TD
-    A[Frontend] -->|HTTP/HTTPS| B[Backend API]
-    B -->|Database Queries| C[PostgreSQL]
-    B -->|Blockchain Queries| D[Cardano DBSync]
-    B -->|Smart Contract Interaction| E[Cardano Blockchain]
-    B -->|Metadata Storage| F[IPFS/Pinata]
+    A[Creator] -->|Uploads Agent| B[Backend]
+    B -->|Stores Metadata| C[IPFS/Pinata]
+    B -->|Mints NFT| D[Cardano Blockchain]
+    D -->|Creates Listing| E[Marketplace]
+    E -->|Updates Status| F[Database]
 ```
 
-## Component Interaction Flow
+1. **Metadata Upload**
+   - Creator provides agent details
+   - Backend validates metadata
+   - Metadata uploaded to IPFS via Pinata
+   - Returns IPFS hash (CID)
 
-### 1. Authentication Flow
+2. **NFT Minting**
+   - Backend creates NFT transaction
+   - Includes IPFS metadata URI
+   - Mints NFT on Cardano
+   - Returns transaction hash
+
+3. **Listing Creation**
+   - Creator sets pricing
+   - Backend creates listing
+   - Updates database
+   - Returns listing ID
+
+### 2. Purchase Flow
 ```mermaid
-sequenceDiagram
-    participant User
-    participant Frontend
-    participant Backend
-    participant Database
-    
-    User->>Frontend: Login Request
-    Frontend->>Backend: POST /api/auth/login
-    Backend->>Database: Verify Credentials
-    Database-->>Backend: User Data
-    Backend-->>Frontend: JWT Token
-    Frontend-->>User: Authenticated Session
+graph TD
+    A[Buyer] -->|Selects Agent| B[Frontend]
+    B -->|Initiates Purchase| C[Backend]
+    C -->|Creates Transaction| D[Cardano Blockchain]
+    D -->|Monitors Status| E[Transaction Monitor]
+    E -->|Updates Status| F[Database]
+    F -->|Grants Access| G[Access Control]
 ```
 
-### 2. AI Agent Listing Flow
+1. **Purchase Initiation**
+   - Buyer selects agent
+   - Chooses purchase type (one-time/subscription)
+   - Frontend initiates purchase
+   - Backend creates transaction
+
+2. **Transaction Processing**
+   - Backend builds transaction
+   - Buyer signs transaction
+   - Transaction submitted to blockchain
+   - Monitor service tracks status
+
+3. **Access Granting**
+   - Transaction confirmed
+   - Backend updates purchase status
+   - Generates access credentials
+   - Grants access to buyer
+
+### 3. Access Management Flow
 ```mermaid
-sequenceDiagram
-    participant Creator
-    participant Frontend
-    participant Backend
-    participant IPFS
-    participant Blockchain
-    
-    Creator->>Frontend: Create Listing
-    Frontend->>Backend: POST /api/listings
-    Backend->>IPFS: Upload Metadata
-    IPFS-->>Backend: IPFS Hash
-    Backend->>Blockchain: Create Listing
-    Blockchain-->>Backend: Transaction Hash
-    Backend-->>Frontend: Listing Created
-    Frontend-->>Creator: Success Confirmation
+graph TD
+    A[User] -->|Requests Access| B[Frontend]
+    B -->|Validates Token| C[Backend]
+    C -->|Checks Permissions| D[Access Control]
+    D -->|Grants/Denies| E[API Gateway]
+    E -->|Routes Request| F[Agent Service]
 ```
 
-### 3. Purchase Flow
-```mermaid
-sequenceDiagram
-    participant Buyer
-    participant Frontend
-    participant Backend
-    participant Blockchain
-    participant IPFS
-    
-    Buyer->>Frontend: Initiate Purchase
-    Frontend->>Backend: POST /api/purchases
-    Backend->>Blockchain: Create Transaction
-    Blockchain-->>Backend: Transaction Confirmed
-    Backend->>IPFS: Store Purchase Metadata
-    Backend-->>Frontend: Purchase Complete
-    Frontend-->>Buyer: Access Granted
-```
+1. **Access Request**
+   - User authenticates
+   - Presents access token
+   - Backend validates token
+   - Checks permissions
 
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - User registration
-- `GET /api/auth/me` - Get current user
-
-### Listings
-- `GET /api/listings` - Get all listings
-- `GET /api/listings/:id` - Get specific listing
-- `POST /api/listings` - Create new listing
-- `PUT /api/listings/:id` - Update listing
-- `DELETE /api/listings/:id` - Delete listing
-
-### Purchases
-- `POST /api/purchases` - Create purchase
-- `GET /api/purchases` - Get user's purchases
-- `GET /api/purchases/:id` - Get specific purchase
-
-### Access Control
-- `GET /api/access/metadata/:assetId` - Get NFT metadata
-- `GET /api/access/verify/:assetId` - Verify access rights
+2. **Service Access**
+   - Validates subscription
+   - Routes to agent service
+   - Tracks usage
+   - Manages rate limits
 
 ## Data Flow
 
-1. **Frontend to Backend**
-   - RESTful API calls
-   - JWT authentication
-   - JSON data format
-   - WebSocket for real-time updates
+### 1. Frontend to Backend
+- RESTful API communication
+- WebSocket for real-time updates
+- JWT authentication
+- Rate limiting
 
-2. **Backend to Blockchain**
-   - Lucid service for transaction building
-   - DBSync for blockchain data querying
-   - Smart contract interaction
+### 2. Backend to Blockchain
+- Lucid Evolution integration
+- Transaction building
+- UTxO management
+- Confirmation monitoring
 
-3. **Backend to IPFS**
-   - Metadata storage
-   - Content addressing
-   - Pinata integration
-
-## Security Measures
-
-1. **Authentication**
-   - JWT token-based authentication
-   - Secure password hashing
-   - Rate limiting
-
-2. **Data Protection**
-   - Input validation
-   - SQL injection prevention
-   - XSS protection
-
-3. **Blockchain Security**
-   - Transaction signing
-   - Smart contract validation
-   - Wallet verification
+### 3. Backend to IPFS
+- Pinata integration
+- Metadata storage
+- Content addressing
+- Caching strategy
 
 ## Error Handling
 
-1. **Frontend**
-   - User-friendly error messages
-   - Retry mechanisms
-   - Fallback UI states
+### 1. Transaction Errors
+- Automatic retry mechanism
+- Error logging
+- User notification
+- Status updates
 
-2. **Backend**
-   - Structured error responses
-   - Logging and monitoring
-   - Transaction rollback
+### 2. API Errors
+- Error boundaries
+- Fallback UI
+- Retry logic
+- Error reporting
 
-## Performance Considerations
-
-1. **Caching**
-   - Redis for session data
-   - Browser caching
-   - API response caching
-
-2. **Optimization**
-   - Database indexing
-   - Query optimization
-   - Asset compression
+### 3. Access Errors
+- Permission validation
+- Token refresh
+- Session management
+- Error logging
 
 ## Monitoring and Logging
 
-1. **Backend Monitoring**
-   - API performance metrics
-   - Error tracking
-   - User activity logs
+### 1. Transaction Monitoring
+- Real-time status tracking
+- Confirmation counting
+- Error detection
+- Status updates
 
-2. **Blockchain Monitoring**
-   - Transaction status
-   - Smart contract events
-   - Network health 
+### 2. System Monitoring
+- Performance metrics
+- Error rates
+- Usage statistics
+- Resource utilization
+
+### 3. User Activity
+- Access logs
+- Purchase history
+- Usage patterns
+- Error reports
+
+## Security Measures
+
+### 1. Authentication
+- JWT tokens
+- Wallet signatures
+- Session management
+- Rate limiting
+
+### 2. Authorization
+- Role-based access
+- Permission checks
+- Token validation
+- IP restrictions
+
+### 3. Data Protection
+- Encryption at rest
+- Secure communication
+- Data validation
+- Access control
+
+## Future Improvements
+
+### 1. Performance
+- Caching implementation
+- Load balancing
+- CDN integration
+- Query optimization
+
+### 2. Scalability
+- Microservices architecture
+- Database sharding
+- Cache distribution
+- Load distribution
+
+### 3. Features
+- Advanced analytics
+- Social features
+- Version control
+- Multi-chain support 

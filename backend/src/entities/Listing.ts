@@ -2,49 +2,56 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { User } from './User';
 import { Agent } from './Agent';
 import { Purchase } from './Purchase';
+import { AIModelMetadata } from '../types/model';
 
 @Entity()
 export class Listing {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
 
   @ManyToOne(() => User, user => user.listings)
-  seller: User;
+  seller!: User;
 
   @ManyToOne(() => Agent, agent => agent.listings)
-  agent: Agent;
+  agent!: Agent;
 
-  @Column('decimal', { precision: 20, scale: 6 })
-  price: string;
+  @Column('decimal', { precision: 20, scale: 0 })
+  price!: bigint;
 
-  @Column('decimal', { precision: 20, scale: 6 })
-  fullPrice: string;
+  @Column('decimal', { precision: 20, scale: 0, nullable: true })
+  fullPrice!: bigint;
+
+  @Column('int')
+  duration!: number;
 
   @Column({ nullable: true })
-  duration: number;
+  subscriptionId?: string;
+
+  @Column('jsonb')
+  modelMetadata!: AIModelMetadata;
 
   @Column({ nullable: true })
-  subscriptionId: string;
+  txHash!: string;
+
+  @Column({ nullable: true })
+  confirmations!: number;
 
   @Column()
-  txHash: string;
-
-  @Column()
-  metadataUri: string;
+  metadataUri!: string;
 
   @Column({
     type: 'enum',
-    enum: ['active', 'sold', 'cancelled'],
-    default: 'active'
+    enum: ['pending', 'active', 'sold', 'cancelled'],
+    default: 'pending'
   })
-  status: 'active' | 'sold' | 'cancelled';
+  status!: 'pending' | 'active' | 'sold' | 'cancelled';
 
   @OneToMany(() => Purchase, purchase => purchase.listing)
-  purchases: Purchase[];
+  purchases!: Purchase[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 } 

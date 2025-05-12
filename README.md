@@ -1,217 +1,230 @@
-# LegionX - AI Agent Marketplace
+# AI Agent Marketplace
 
-LegionX is a decentralized marketplace for AI agents built on the Cardano blockchain. It enables creators to monetize their AI agents through subscriptions or full ownership sales, while providing users with secure and transparent access to AI capabilities.
+A decentralized marketplace for AI agents, built on the Cardano blockchain. This platform enables creators to monetize their AI models and users to access powerful AI capabilities through NFT-based ownership.
 
-## 🌟 Features
+## Features
 
-- **Decentralized Marketplace**: Built on Cardano blockchain for transparency and security
-- **AI Agent Listings**: Create, manage, and sell AI agents
-- **Flexible Pricing**: Support for both subscription and full ownership models
-- **Secure Access**: JWT-based authentication and blockchain-verified ownership
-- **Metadata Storage**: IPFS integration for decentralized metadata storage
-- **Real-time Updates**: WebSocket support for live marketplace updates
+- 🎯 AI Agent Creation and Management
+- 💰 NFT-based Ownership
+- 🔒 Secure Access Control
+- 💳 Flexible Pricing Models
+- 📊 Usage Analytics
+- 🔄 Real-time Updates
+- 🌐 IPFS Metadata Storage
+- 💎 Cardano Blockchain Integration
 
-## 🏗️ Architecture
+## Tech Stack
 
-The project consists of three main components:
+### Frontend
+- React with TypeScript
+- HeroUI Component Library
+- TailwindCSS
+- Framer Motion
+- React Query
+- Zustand
 
-1. **Smart Contracts** (`/smartcontract`): Cardano blockchain contracts for marketplace operations
-2. **Backend API** (`/backend`): Node.js/TypeScript REST API
-3. **Frontend** (`/frontend`): React-based user interface
+### Backend
+- Node.js with TypeScript
+- Express.js
+- TypeORM
+- Lucid Evolution
+- JWT Authentication
+- WebSocket
 
-For detailed architecture and flow documentation, see [project_flow.md](./project_flow.md)
+### Blockchain
+- Cardano
+- Plutus Smart Contracts
+- Lucid Evolution SDK
+- Blockfrost API
 
-## 🚀 Getting Started
+### Storage
+- PostgreSQL
+- Redis
+- IPFS/Pinata
+- AWS S3
+
+## Getting Started
 
 ### Prerequisites
-
-- Node.js (v18 or higher)
-- PostgreSQL (v14 or higher)
-- Cardano DBSync
-- Cardano Node (for development)
-- IPFS/Pinata account
+- Node.js (v16+)
+- PostgreSQL
+- Redis
+- Cardano Node
+- Pinata Account
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/legionx.git
-   cd legionx
-   ```
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/ai-agent-marketplace.git
+cd ai-agent-marketplace
+```
 
-2. **Set up environment variables**
-   ```bash
-   # In backend directory
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+2. Install dependencies
+```bash
+# Install backend dependencies
+cd backend
+npm install
 
-3. **Install dependencies**
-   ```bash
-   # Install backend dependencies
-   cd backend
-   pnpm install
+# Install frontend dependencies
+cd ../frontend
+npm install
+```
 
-   # Install frontend dependencies
-   cd ../frontend
-   pnpm install
-   ```
-
-4. **Set up database**
-   ```bash
-   # In backend directory
-   pnpm prisma migrate dev
-   ```
-
-5. **Start development servers**
-   ```bash
-   # Start backend
-   cd backend
-   pnpm dev
-
-   # Start frontend
-   cd frontend
-   pnpm dev
-   ```
-
-## 📚 Documentation
-
-- [Project Flow](./project_flow.md) - Detailed system architecture and component interaction
-- [Smart Contract Documentation](./smartcontract/README.md) - Smart contract specifications
-- [API Documentation](./backend/README.md) - Backend API documentation
-- [Frontend Documentation](./frontend/README.md) - Frontend implementation details
-
-## 🔧 Configuration
-
-### Environment Variables
-
-Required environment variables for the backend:
-
-```env
-# Server Configuration
-PORT=3000
+3. Configure environment variables
+```bash
+# Backend (.env)
 NODE_ENV=development
-
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=legionx
-
-# DBSync Configuration
-DBSYNC_HOST=localhost
-DBSYNC_PORT=5432
-DBSYNC_DB=dbsync
-DBSYNC_USER=postgres
-DBSYNC_PASSWORD=postgres
-
-# Cardano Network Configuration
-NETWORK=preprod
-BLOCKFROST_API_KEY=your_blockfrost_api_key
-
-# JWT Configuration
-JWT_SECRET=your_jwt_secret_key
-
-# IPFS/Pinata Configuration
+PORT=3000
+DATABASE_URL=postgresql://localhost:5432/marketplace
+REDIS_URL=redis://localhost:6379
+JWT_SECRET=your_jwt_secret
 PINATA_API_KEY=your_pinata_api_key
 PINATA_SECRET_KEY=your_pinata_secret_key
+BLOCKFROST_API_KEY=your_blockfrost_api_key
+
+# Frontend (.env)
+VITE_API_URL=http://localhost:3000
+VITE_PINATA_API_KEY=your_pinata_api_key
+VITE_PINATA_SECRET_KEY=your_pinata_secret_key
 ```
 
-## 🛠️ Development
-
-### Smart Contract Development
-
+4. Start the development servers
 ```bash
-cd smartcontract
-aiken build
-```
-
-### Backend Development
-
-```bash
+# Start backend
 cd backend
-pnpm dev
+npm run dev
+
+# Start frontend
+cd ../frontend
+npm run dev
 ```
 
-### Frontend Development
+## Project Structure
 
-```bash
-cd frontend
-pnpm dev
+```
+├── backend/
+│   ├── src/
+│   │   ├── controllers/
+│   │   ├── services/
+│   │   ├── entities/
+│   │   ├── middlewares/
+│   │   ├── utils/
+│   │   └── config/
+│   ├── tests/
+│   └── docs/
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── hooks/
+│   │   ├── stores/
+│   │   └── utils/
+│   ├── public/
+│   └── tests/
+└── docs/
+    ├── architecture.md
+    ├── flow.md
+    └── api.md
 ```
 
-## 🧪 Testing
+## API Documentation
 
+### Authentication
+- `POST /api/auth/login` - User login
+- `POST /api/auth/register` - User registration
+- `GET /api/auth/me` - Get current user
+
+### Agents
+- `GET /api/agents` - List all agents
+- `GET /api/agents/:id` - Get agent details
+- `POST /api/agents` - Create new agent
+- `PUT /api/agents/:id` - Update agent
+- `DELETE /api/agents/:id` - Delete agent
+
+### Listings
+- `GET /api/listings` - List all listings
+- `GET /api/listings/:id` - Get listing details
+- `POST /api/listings` - Create new listing
+- `PUT /api/listings/:id` - Update listing
+- `DELETE /api/listings/:id` - Delete listing
+
+### Purchases
+- `POST /api/purchases` - Create purchase
+- `GET /api/purchases` - List user's purchases
+- `GET /api/purchases/:id` - Get purchase details
+
+## Development
+
+### Code Style
+- ESLint for code linting
+- Prettier for code formatting
+- TypeScript for type safety
+
+### Testing
 ```bash
 # Run backend tests
 cd backend
-pnpm test
+npm test
 
 # Run frontend tests
 cd frontend
-pnpm test
-
-# Run smart contract tests
-cd smartcontract
-aiken test
+npm test
 ```
 
-## 📦 Deployment
+### Building for Production
+```bash
+# Build backend
+cd backend
+npm run build
+
+# Build frontend
+cd frontend
+npm run build
+```
+
+## Deployment
 
 ### Backend Deployment
-
-1. Build the application:
-   ```bash
-   cd backend
-   pnpm build
-   ```
-
-2. Start the production server:
-   ```bash
-   pnpm start
-   ```
+1. Set up a Node.js server
+2. Configure environment variables
+3. Build the application
+4. Start the server with PM2
 
 ### Frontend Deployment
+1. Build the application
+2. Deploy to a CDN
+3. Configure environment variables
+4. Set up SSL certificates
 
-1. Build the application:
-   ```bash
-   cd frontend
-   pnpm build
-   ```
+### Database Setup
+1. Create PostgreSQL database
+2. Run migrations
+3. Set up backups
+4. Configure replication
 
-2. Deploy the `dist` directory to your hosting provider
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-## 📝 License
+## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-The Apache License 2.0 is a permissive license that allows you to:
-- Use the software for any purpose
-- Modify the software
-- Distribute the software
-- Distribute modified versions
-- Use the software commercially
-- Use the software privately
-- Use patent claims licensed to the user
+## Support
 
-For more information about the Apache License 2.0, visit [https://www.apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0)
+For support, please:
+1. Check the [documentation](docs/)
+2. Open an issue
+3. Join our [Discord community](https://discord.gg/your-discord)
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- Cardano Foundation
-- Aiken Framework
-- IPFS/Pinata
-- All contributors and supporters
-
-## 📞 Support
-
-For support, please open an issue in the GitHub repository or contact the development team.
+- [HeroUI](https://www.heroui.com) for the UI components
+- [Lucid Evolution](https://github.com/lucid-evolution/lucid) for Cardano integration
+- [Pinata](https://pinata.cloud) for IPFS storage
+- [Blockfrost](https://blockfrost.io) for Cardano API

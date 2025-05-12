@@ -1,137 +1,145 @@
-import pinataSDK from '@pinata/sdk';
+import { PinataSDK } from 'pinata-web3';
+import { config } from 'dotenv';
+import { Logger } from '../utils/logger';
+import { ValidationError } from '../types/errors';
 
-export interface AgentMetadata {
+config();
+
+export interface NFTMetadata {
   name: string;
   description: string;
-  modelVersion: string;
-  usageRights: {
-    type: 'subscription' | 'full';
-    durationDays?: number;
+  image: string;
+  properties: {
+    files: Array<{
+      name: string;
+      mediaType: string;
+      src: string;
+    }>;
+    category: string;
+    version: string;
   };
-  creator: string;
-  // API access information
-  apiEndpoint: {
-    url: string;
-    method: 'POST' | 'GET';
-    headers?: Record<string, string>;
-    authentication?: {
-      type: 'apiKey' | 'bearer' | 'basic';
-      key?: string;
-      value?: string;
-    };
-  };
-  // Model configuration
-  modelConfig: {
-    maxTokens?: number;
-    temperature?: number;
-    topP?: number;
-    frequencyPenalty?: number;
-    presencePenalty?: number;
-    stopSequences?: string[];
-  };
-  // Rate limiting
-  rateLimit?: {
-    requestsPerMinute: number;
-    concurrentRequests: number;
-  };
+  version: string;
 }
 
 export class PinataService {
-  private pinata;
+  private pinata: PinataSDK;
+  private logger: Logger;
+  private gateway: string;
 
   constructor() {
-    this.pinata = new pinataSDK(
-      process.env.PINATA_API_KEY,
-      process.env.PINATA_SECRET_KEY
-    );
+    this.logger = new Logger('PinataService');
+    this.gateway = process.env.PINATA_GATEWAY || '';
+    
+    if (!process.env.PINATA_JWT) {
+      throw new Error('PINATA_JWT environment variable is required');
+    }
+
+    this.pinata = new PinataSDK({
+      pinataJwt: process.env.PINATA_JWT,
+      pinataGateway: this.gateway
+    });
   }
 
-  async uploadMetadata(metadata: AgentMetadata): Promise<string> {
-    try {
-      const result = await this.pinata.pinJSONToIPFS(metadata);
-      return `ipfs://${result.IpfsHash}`;
-    } catch (error) {
-      console.error('Error uploading to IPFS:', error);
-      throw new Error('Failed to upload metadata to IPFS');
+  private validateMetadata(metadata: NFTMetadata): void {
+    if (!metadata.name || typeof metadata.name !== 'string') {
+      throw new ValidationError('Invalid metadata: name is required and must be a string');
+    }
+
+    if (!metadata.description || typeof metadata.description !== 'string') {
+      throw new ValidationError('Invalid metadata: description is required and must be a string');
+    }
+
+    if (!metadata.image || typeof metadata.image !== 'string') {
+      throw new ValidationError('Invalid metadata: image is required and must be a string');
+    }
+
+    if (!metadata.properties || typeof metadata.properties !== 'object') {
+      throw new ValidationError('Invalid metadata: properties is required and must be an object');
+    }
+
+    if (!Array.isArray(metadata.properties.files)) {
+      throw new ValidationError('Invalid metadata: properties.files must be an array');
+    }
+
+    metadata.properties.files.forEach((file, index) => {
+      if (!file.name || !file.mediaType || !file.src) {
+        throw new ValidationError(`Invalid file at index ${index}: name, mediaType, and src are required`);
+      }
+    });
+
+    if (!metadata.properties.category || typeof metadata.properties.category !== 'string') {
+      throw new ValidationError('Invalid metadata: properties.category is required and must be a string');
+    }
+
+    if (!metadata.properties.version || typeof metadata.properties.version !== 'string') {
+      throw new ValidationError('Invalid metadata: properties.version is required and must be a string');
     }
   }
 
-  async getMetadata(ipfsHash: string): Promise<AgentMetadata> {
+  async uploadMetadata(metadata: NFTMetadata): Promise<string> {
     try {
-      const response = await fetch(`https://gateway.pinata.cloud/ipfs/${ipfsHash}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch metadata from IPFS');
-      }
+      this.validateMetadata(metadata);
+
+      const result = await this.pinata.upload.json(metadata);
+      this.logger.info(`Metadata uploaded successfully: ${result.IpfsHash}`);
+      return result.IpfsHash;
+    } catch (error) {
+      this.logger.error('Failed to upload metadata:', error);
+      throw error;
+    }
+  }
+
+  async uploadFile(file: File): Promise<string> {
+    try {
+      const result = await this.pinata.upload.file(file);
+      this.logger.info(`File uploaded successfully: ${result.IpfsHash}`);
+      return result.IpfsHash;
+    } catch (error) {
+      this.logger.error('Failed to upload file:', error);
+      throw error;
+    }
+  }
+
+  async getMetadata(ipfsHash: string): Promise<NFTMetadata> {
+    try {
+      const response = await fetch(`${this.gateway}/ipfs/${ipfsHash}`);
       const data = await response.json();
-      
-      // Validate the response data matches AgentMetadata
-      if (!this.isValidAgentMetadata(data)) {
-        throw new Error('Invalid metadata format');
-      }
-      
-      return data;
+      const metadata = data as NFTMetadata;
+      this.validateMetadata(metadata);
+      return metadata;
     } catch (error) {
-      console.error('Error fetching from IPFS:', error);
-      throw new Error('Failed to fetch metadata from IPFS');
+      this.logger.error('Failed to retrieve metadata:', error);
+      throw error;
     }
   }
 
-  private isValidAgentMetadata(data: unknown): data is AgentMetadata {
-    if (typeof data !== 'object' || data === null) return false;
-    
-    const metadata = data as Partial<AgentMetadata>;
-    
-    // Basic validation
-    const hasBasicFields = (
-      typeof metadata.name === 'string' &&
-      typeof metadata.description === 'string' &&
-      typeof metadata.modelVersion === 'string' &&
-      typeof metadata.creator === 'string' &&
-      typeof metadata.usageRights === 'object' &&
-      metadata.usageRights !== null &&
-      (metadata.usageRights.type === 'subscription' || metadata.usageRights.type === 'full') &&
-      (metadata.usageRights.durationDays === undefined || typeof metadata.usageRights.durationDays === 'number')
-    );
-
-    if (!hasBasicFields) return false;
-
-    // API endpoint validation
-    if (!metadata.apiEndpoint || typeof metadata.apiEndpoint !== 'object') return false;
-    const apiEndpoint = metadata.apiEndpoint;
-    if (
-      typeof apiEndpoint.url !== 'string' ||
-      !['POST', 'GET'].includes(apiEndpoint.method)
-    ) return false;
-
-    // Optional authentication validation
-    if (apiEndpoint.authentication) {
-      if (
-        !['apiKey', 'bearer', 'basic'].includes(apiEndpoint.authentication.type) ||
-        (apiEndpoint.authentication.type === 'apiKey' && typeof apiEndpoint.authentication.key !== 'string')
-      ) return false;
+  async getFile(ipfsHash: string): Promise<Blob> {
+    try {
+      const response = await fetch(`${this.gateway}/ipfs/${ipfsHash}`);
+      return await response.blob();
+    } catch (error) {
+      this.logger.error('Failed to retrieve file:', error);
+      throw error;
     }
+  }
 
-    // Optional model config validation
-    if (metadata.modelConfig) {
-      const config = metadata.modelConfig;
-      if (
-        (config.maxTokens !== undefined && typeof config.maxTokens !== 'number') ||
-        (config.temperature !== undefined && typeof config.temperature !== 'number') ||
-        (config.topP !== undefined && typeof config.topP !== 'number') ||
-        (config.frequencyPenalty !== undefined && typeof config.frequencyPenalty !== 'number') ||
-        (config.presencePenalty !== undefined && typeof config.presencePenalty !== 'number') ||
-        (config.stopSequences !== undefined && !Array.isArray(config.stopSequences))
-      ) return false;
+  async pinFile(ipfsHash: string): Promise<void> {
+    try {
+      // Since we're already uploading through Pinata, the file is automatically pinned
+      this.logger.info(`File is already pinned: ${ipfsHash}`);
+    } catch (error) {
+      this.logger.error('Failed to pin file:', error);
+      throw error;
     }
+  }
 
-    // Optional rate limit validation
-    if (metadata.rateLimit) {
-      if (
-        typeof metadata.rateLimit.requestsPerMinute !== 'number' ||
-        typeof metadata.rateLimit.concurrentRequests !== 'number'
-      ) return false;
+  async unpinFile(ipfsHash: string): Promise<void> {
+    try {
+      // Note: Unpinning is not supported in the current version of the SDK
+      this.logger.warn(`Unpinning is not supported: ${ipfsHash}`);
+    } catch (error) {
+      this.logger.error('Failed to unpin file:', error);
+      throw error;
     }
-
-    return true;
   }
 } 

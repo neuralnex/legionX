@@ -13,19 +13,21 @@ export class AccessController {
     this.nftService = new NFTService();
   }
 
-  getMetadata = async (req: AuthenticatedRequest, res: Response) => {
+  getMetadata = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { assetId } = req.params;
       const ownerAddress = req.user.wallet;
 
       if (!ownerAddress) {
-        return res.status(400).json({ error: 'User wallet address not found' });
+        res.status(400).json({ error: 'User wallet address not found' });
+        return;
       }
 
       // Verify ownership
       const hasAccess = await this.nftService.verifyAccess(assetId, ownerAddress);
       if (!hasAccess) {
-        return res.status(403).json({ error: 'Access denied' });
+        res.status(403).json({ error: 'Access denied' });
+        return;
       }
 
       // Get metadata
@@ -37,13 +39,14 @@ export class AccessController {
     }
   }
 
-  verifyAccess = async (req: AuthenticatedRequest, res: Response) => {
+  verifyAccess = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { assetId } = req.params;
       const ownerAddress = req.user.wallet;
 
       if (!ownerAddress) {
-        return res.status(400).json({ error: 'User wallet address not found' });
+        res.status(400).json({ error: 'User wallet address not found' });
+        return;
       }
 
       const hasAccess = await this.nftService.verifyAccess(assetId, ownerAddress);

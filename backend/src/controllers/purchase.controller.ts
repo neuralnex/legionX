@@ -4,6 +4,7 @@ import { Purchase } from '../entities/Purchase';
 import { Listing } from '../entities/Listing';
 import { LucidService } from '../services/lucid';
 import { UserPayload } from '../types/auth';
+import { config } from 'dotenv';
 
 interface AuthenticatedRequest extends Request {
   user: UserPayload;
@@ -15,16 +16,22 @@ export class PurchaseController {
   private lucidService: LucidService;
 
   constructor() {
-    this.lucidService = new LucidService();
+    config(); // Load environment variables
+    this.lucidService = new LucidService(
+      process.env.BLOCKFROST_API_KEY || '',
+      process.env.MARKET_VALIDATOR_ADDRESS || '',
+      process.env.ORACLE_VALIDATOR_ADDRESS || ''
+    );
   }
 
-  createPurchase = async (req: AuthenticatedRequest, res: Response) => {
+  createPurchase = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { listingId, isFullPurchase } = req.body;
       const buyerAddress = req.user.wallet;
 
       if (!buyerAddress) {
-        return res.status(400).json({ error: 'User wallet address not found' });
+        res.status(400).json({ error: 'User wallet address not found' });
+        return;
       }
 
       const listing = await this.listingRepository.findOne({
@@ -33,27 +40,35 @@ export class PurchaseController {
       });
 
       if (!listing) {
-        return res.status(404).json({ error: 'Listing not found' });
+        res.status(404).json({ error: 'Listing not found' });
+        return;
       }
 
       if (listing.status !== 'active') {
-        return res.status(400).json({ error: 'Listing is not active' });
+        res.status(400).json({ error: 'Listing is not active' });
+        return;
       }
 
       // Build transaction
-      const action = await this.lucidService.buildPurchaseTx(
-        listingId,
-        buyerAddress,
-        isFullPurchase
+      const listingUTxO = await this.lucidService.getListingUTxO(listing.txHash);
+      if (!listingUTxO) {
+        res.status(404).json({ error: 'Listing UTxO not found' });
+        return;
+      }
+      const buyerUtxos = await this.lucidService.getLucid().utxosAt(buyerAddress);
+      const action = await this.lucidService.buildPurchaseTransaction(
+        listingUTxO,
+        buyerUtxos,
+        listing.seller.wallet
       );
 
       // Create purchase record
       const purchase = this.purchaseRepository.create({
-        listing,
         buyer: { id: req.user.sub },
-        amount: isFullPurchase ? listing.fullPrice : listing.price,
-        txHash: '', // Will be updated after transaction confirmation
-        status: 'pending'
+        listing: { id: parseInt(listingId) },
+        amount: BigInt(isFullPurchase ? listing.fullPrice || listing.price : listing.price),
+        status: 'pending',
+        txHash: action
       });
 
       await this.purchaseRepository.save(purchase);
@@ -64,7 +79,7 @@ export class PurchaseController {
     }
   };
 
-  getPurchases = async (req: AuthenticatedRequest, res: Response) => {
+  getPurchases = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const purchases = await this.purchaseRepository.find({
         where: { buyer: { id: req.user.sub } },
@@ -77,7 +92,7 @@ export class PurchaseController {
     }
   };
 
-  getPurchase = async (req: AuthenticatedRequest, res: Response) => {
+  getPurchase = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
       const purchase = await this.purchaseRepository.findOne({
@@ -86,7 +101,8 @@ export class PurchaseController {
       });
 
       if (!purchase) {
-        return res.status(404).json({ error: 'Purchase not found' });
+        res.status(404).json({ error: 'Purchase not found' });
+        return;
       }
 
       res.json({ purchase });

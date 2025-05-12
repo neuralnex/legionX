@@ -1,6 +1,5 @@
 import { dbSyncService } from '../config/database';
-import { PinataService } from './pinata';
-import { AgentMetadata } from './pinata';
+import { PinataService, NFTMetadata } from './pinata';
 
 export class NFTService {
   private pinataService: PinataService;
@@ -9,7 +8,7 @@ export class NFTService {
     this.pinataService = new PinataService();
   }
 
-  async getMetadataFromNFT(assetId: string, ownerAddress: string): Promise<AgentMetadata> {
+  async getMetadataFromNFT(assetId: string, ownerAddress: string): Promise<NFTMetadata> {
     try {
       // 1. Verify ownership using DBSync
       const utxos = await dbSyncService.getUtxosForAddress(ownerAddress);

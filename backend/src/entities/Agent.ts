@@ -5,29 +5,29 @@ import { Listing } from './Listing';
 @Entity()
 export class Agent {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column()
-  name: string;
+  name!: string;
 
   @Column('text')
-  description: string;
+  description!: string;
 
   @Column()
-  modelVersion: string;
+  modelVersion!: string;
 
   @Column()
-  metadataUri: string;
+  metadataUri!: string;
 
   @ManyToOne(() => User, user => user.agents)
-  creator: User;
+  creator!: User;
 
   @OneToMany(() => Listing, listing => listing.agent)
-  listings: Listing[];
+  listings!: Listing[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 } 

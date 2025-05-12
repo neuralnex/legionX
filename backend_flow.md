@@ -1,453 +1,367 @@
-# LegionX Backend Flow
+# Backend Flow Documentation
 
-## System Architecture
+## Overview
+The backend is built using TypeScript and integrates with the Cardano blockchain using Lucid Evolution. It provides a robust API for managing AI model listings, purchases, and subscriptions.
 
-### 1. API Layer
-- Express.js server with TypeScript
-- RESTful endpoints
-- CORS configuration
-- JSON body parsing
-- Environment variable management
+## AI Agent NFT System
 
-### 2. Database Layer
-- PostgreSQL database
-- TypeORM for ORM
-- Entity-based schema
-- Migration support
-- Connection pooling
-
-### 3. Project Structure
+### Agent Metadata Structure
+```typescript
+interface AIModelMetadata {
+  name: string;
+  description: string;
+  version: string;
+  modelType: string;
+  capabilities: string[];
+  parameters: {
+    [key: string]: any;
+  };
+  apiEndpoint: string;
+  accessToken?: string;
+  pricing: {
+    subscription: {
+      monthly: number;
+      yearly: number;
+    };
+    oneTime: number;
+  };
+  requirements: {
+    minMemory: number;
+    minStorage: number;
+    dependencies: string[];
+  };
+}
 ```
-backend/
-├── src/
-│   ├── config/         # Configuration files
-│   ├── controllers/    # Route controllers
-│   ├── entities/       # Database entities
-│   ├── middleware/     # Custom middleware
-│   ├── routes/         # API routes
-│   ├── services/       # Business logic
-│   ├── types/          # TypeScript types
-│   └── index.ts        # Entry point
-├── package.json
-└── tsconfig.json
+
+### IPFS Integration (Pinata)
+The system uses Pinata for IPFS storage of agent metadata:
+
+```typescript
+class PinataService {
+  private pinata: PinataClient;
+  
+  async uploadMetadata(metadata: AIModelMetadata): Promise<string> {
+    // Upload metadata to IPFS via Pinata
+    // Returns IPFS hash (CID)
+  }
+
+  async getMetadata(ipfsHash: string): Promise<AIModelMetadata> {
+    // Fetch metadata from IPFS via Pinata
+  }
+}
+```
+
+### NFT Minting Flow
+1. **Metadata Upload**
+   - Agent metadata is uploaded to IPFS via Pinata
+   - Returns IPFS hash (CID) for the metadata
+
+2. **NFT Creation**
+   - Mint NFT with metadata URI pointing to IPFS
+   - NFT represents ownership of the AI agent
+   - Includes royalty information for the creator
+
+3. **Listing Creation**
+   - Create marketplace listing for the NFT
+   - Set pricing (subscription/one-time)
+   - Configure access controls
+
+## Smart Contract Integration
+
+### Lucid Service
+The `LucidService` class handles all blockchain interactions:
+
+```typescript
+class LucidService {
+  private lucid: LucidEvolution;
+  private marketValidatorAddress: string;
+  private oracleValidatorAddress: string;
+}
+```
+
+#### Key Features:
+- Blockfrost provider integration for Cardano network
+- Automatic retry mechanism for failed operations
+- Transaction building and signing
+- UTxO management
+- Price oracle integration
+
+### Transaction Types
+
+1. **Listing Transactions**
+   - Create listing with metadata
+   - Edit listing details
+   - Cancel listing
+   - Query listing UTxOs
+
+2. **Purchase Transactions**
+   - Full purchase
+   - Subscription purchase
+   - Price conversion (USD to ADA)
+   - Automatic fee calculation
+
+3. **Token Transactions**
+   - Oneshot token minting
+   - Token transfer
+   - Asset management
+
+### Transaction Monitoring
+The `TransactionMonitorService` provides real-time monitoring of blockchain transactions:
+
+```typescript
+class TransactionMonitorService {
+  private lucid: LucidEvolution;
+  private checkInterval: number = 30000; // 30 seconds
+  private maxConfirmations: number = 20; // ~10 minutes on Cardano
+}
+```
+
+#### Key Features:
+- Automatic monitoring of pending transactions
+- Transaction confirmation tracking
+- Status updates for purchases and listings
+- Event emission for webhook notifications
+- Configurable confirmation thresholds
+- Error handling and retry logic
+
+## Complete Agent Marketplace Flow
+
+### 1. Agent Creation and Listing
+```typescript
+async createAgentListing(
+  agentMetadata: AIModelMetadata,
+  pricing: {
+    subscription?: {
+      monthly: number;
+      yearly: number;
+    };
+    oneTime?: number;
+  }
+): Promise<string> {
+  // 1. Upload metadata to IPFS
+  const ipfsHash = await this.pinataService.uploadMetadata(agentMetadata);
+  
+  // 2. Mint NFT with metadata URI
+  const nftTxHash = await this.lucidService.mintAgentNFT(ipfsHash);
+  
+  // 3. Create marketplace listing
+  const listingTxHash = await this.lucidService.createListing(
+    nftTxHash,
+    pricing
+  );
+  
+  return listingTxHash;
+}
+```
+
+### 2. Purchase Flow
+```typescript
+async purchaseAgent(
+  listingId: string,
+  purchaseType: 'subscription' | 'oneTime',
+  duration?: number
+): Promise<string> {
+  // 1. Build purchase transaction
+  const txHash = await this.lucidService.buildPurchaseTransaction(
+    listingId,
+    purchaseType,
+    duration
+  );
+  
+  // 2. Monitor transaction
+  await this.transactionMonitor.startMonitoring(txHash);
+  
+  // 3. On confirmation, grant access
+  await this.accessControlService.grantAccess(
+    listingId,
+    purchaseType,
+    duration
+  );
+  
+  return txHash;
+}
+```
+
+### 3. Access Control
+```typescript
+class AccessControlService {
+  async grantAccess(
+    listingId: string,
+    purchaseType: string,
+    duration?: number
+  ): Promise<void> {
+    // 1. Get agent metadata from IPFS
+    const metadata = await this.pinataService.getMetadata(
+      listing.metadataUri
+    );
+    
+    // 2. Generate access token
+    const accessToken = await this.generateAccessToken(metadata);
+    
+    // 3. Store access credentials
+    await this.storeAccessCredentials(
+      listingId,
+      accessToken,
+      duration
+    );
+  }
+}
+```
+
+## Database Integration
+
+### Entities
+
+1. **Purchase**
+   - Buyer information
+   - Listing reference
+   - Transaction hash
+   - Purchase status
+   - Amount
+   - Confirmation count
+
+2. **Listing**
+   - Seller information
+   - Model metadata
+   - Price information
+   - Status
+   - Transaction hash
+   - Confirmation count
+
+## Error Handling
+
+### Retry Mechanism
+```typescript
+private async retry<T>(operation: () => Promise<T>): Promise<T> {
+  let lastError: Error | null = null;
+  for (let i = 0; i < this.maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+      if (i < this.maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+      }
+    }
+  }
+  throw lastError;
+}
+```
+
+## Environment Configuration
+
+Required environment variables:
+```env
+BLOCKFROST_API_KEY=your_blockfrost_api_key
+MARKET_VALIDATOR_ADDRESS=your_market_validator_address
+ORACLE_VALIDATOR_ADDRESS=your_oracle_validator_address
+PINATA_API_KEY=your_pinata_api_key
+PINATA_SECRET_KEY=your_pinata_secret_key
 ```
 
 ## API Endpoints
 
-### 1. Authentication Routes
-```typescript
-// routes/auth.routes.ts
-router.post('/register', authController.register);
-router.post('/login', authController.login);
-router.post('/link-wallet', authController.linkWallet);
-```
-
-### 2. Listing Routes
-```typescript
-// routes/listing.routes.ts
-router.get('/', listingController.getListings);
-router.get('/:id', listingController.getListing);
-router.post('/', listingController.createListing);
-router.put('/:id', listingController.updateListing);
-router.delete('/:id', listingController.deleteListing);
-```
-
-### 3. Purchase Routes
-```typescript
-// routes/purchase.routes.ts
-router.get('/', purchaseController.getPurchases);
-router.get('/:id', purchaseController.getPurchase);
-router.post('/', purchaseController.createPurchase);
-```
-
-## Database Schema
-
-### 1. User Entity
-```typescript
-// entities/User.ts
-@Entity()
-export class User {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column()
-  name: string;
-
-  @Column({ unique: true })
-  email: string;
-
-  @Column()
-  passwordHash: string;
-
-  @Column({ nullable: true })
-  walletAddress: string;
-
-  @OneToMany(() => Listing, listing => listing.owner)
-  listings: Listing[];
-
-  @OneToMany(() => Purchase, purchase => purchase.buyer)
-  purchases: Purchase[];
-}
-```
-
-### 2. Listing Entity
-```typescript
-// entities/Listing.ts
-@Entity()
-export class Listing {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column()
-  title: string;
-
-  @Column('text')
-  description: string;
-
-  @Column('jsonb')
-  price: {
-    subscription: number;
-    full: number;
-  };
-
-  @Column()
-  category: string;
-
-  @Column('jsonb')
-  specifications: Record<string, any>;
-
-  @Column()
-  ipfsHash: string;
-
-  @Column({ nullable: true })
-  nftTokenId: string;
-
-  @ManyToOne(() => User, user => user.listings)
-  owner: User;
-
-  @OneToMany(() => Purchase, purchase => purchase.listing)
-  purchases: Purchase[];
-}
-```
-
-### 3. Purchase Entity
-```typescript
-// entities/Purchase.ts
-@Entity()
-export class Purchase {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column()
-  type: 'subscription' | 'full';
-
-  @Column()
-  status: 'pending' | 'completed' | 'failed';
-
-  @Column({ nullable: true })
-  transactionHash: string;
-
-  @ManyToOne(() => User, user => user.purchases)
-  buyer: User;
-
-  @ManyToOne(() => Listing, listing => listing.purchases)
-  listing: Listing;
-}
-```
-
-## Controllers
-
-### 1. Auth Controller
-```typescript
-// controllers/auth.controller.ts
-export class AuthController {
-  async register(req: Request, res: Response) {
-    const { name, email, password, walletAddress } = req.body;
-    // Implementation
-  }
-
-  async login(req: Request, res: Response) {
-    const { email, password } = req.body;
-    // Implementation
-  }
-
-  async linkWallet(req: Request, res: Response) {
-    const { walletAddress, signature } = req.body;
-    // Implementation
-  }
-}
-```
-
-### 2. Listing Controller
-```typescript
-// controllers/listing.controller.ts
-export class ListingController {
-  async getListings(req: Request, res: Response) {
-    const { page, limit, category, search } = req.query;
-    // Implementation
-  }
-
-  async createListing(req: Request, res: Response) {
-    const listingData = req.body;
-    // Implementation
-  }
-
-  async updateListing(req: Request, res: Response) {
-    const { id } = req.params;
-    const updateData = req.body;
-    // Implementation
-  }
-}
-```
-
-## Services
-
-### 1. Blockchain Service
-```typescript
-// services/blockchain.service.ts
-export class BlockchainService {
-  private marketplace: Contract;
-  private nft: Contract;
-  private token: Contract;
-
-  constructor() {
-    this.marketplace = new ethers.Contract(
-      MARKETPLACE_ADDRESS,
-      MARKETPLACE_ABI,
-      provider
-    );
-  }
-
-  async createListing(listingData: CreateListingRequest) {
-    const tx = await this.marketplace.createListing(
-      listingData.title,
-      listingData.price,
-      listingData.ipfsHash
-    );
-    return await tx.wait();
-  }
-}
-```
-
-### 2. IPFS Service
-```typescript
-// services/ipfs.service.ts
-export class IPFSService {
-  private pinata: PinataClient;
-
-  constructor() {
-    this.pinata = new PinataClient({
-      pinataApiKey: process.env.PINATA_API_KEY,
-      pinataSecretApiKey: process.env.PINATA_SECRET_KEY
-    });
-  }
-
-  async uploadToIPFS(file: Buffer, metadata: any) {
-    const result = await this.pinata.pinFileToIPFS(file, {
-      pinataMetadata: {
-        name: metadata.name,
-        keyvalues: metadata.keyvalues
-      }
-    });
-    return result.IpfsHash;
-  }
-}
-```
-
-## Middleware
-
-### 1. Authentication Middleware
-```typescript
-// middleware/auth.middleware.ts
-export const authMiddleware = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({ message: 'No token provided' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    return res.status(401).json({ message: 'Invalid token' });
-  }
-};
-```
-
-### 2. Validation Middleware
-```typescript
-// middleware/validation.middleware.ts
-export const validateListing = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const schema = Joi.object({
-    title: Joi.string().required().min(3).max(100),
-    description: Joi.string().required().min(10),
-    price: Joi.object({
-      subscription: Joi.number().required().min(0),
-      full: Joi.number().required().min(0)
-    }).required(),
-    category: Joi.string().required(),
-    specifications: Joi.object().required(),
-    ipfsHash: Joi.string().required()
-  });
-
-  const { error } = schema.validate(req.body);
-  if (error) {
-    return res.status(400).json({ message: error.details[0].message });
-  }
-  next();
-};
-```
-
-## Error Handling
-
-### 1. Global Error Handler
-```typescript
-// middleware/error.middleware.ts
-export const errorHandler = (
-  err: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  console.error(err);
-
-  if (err instanceof ValidationError) {
-    return res.status(400).json({
-      message: 'Validation error',
-      errors: err.errors
-    });
-  }
-
-  if (err instanceof BlockchainError) {
-    return res.status(500).json({
-      message: 'Blockchain transaction failed',
-      error: err.message
-    });
-  }
-
-  return res.status(500).json({
-    message: 'Internal server error'
-  });
-};
-```
-
-## Configuration
-
-### 1. Database Configuration
-```typescript
-// config/database.ts
-export const AppDataSource = new DataSource({
-  type: 'postgres',
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT || '5432'),
-  username: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  entities: [User, Listing, Purchase],
-  synchronize: process.env.NODE_ENV !== 'production',
-  logging: process.env.NODE_ENV !== 'production'
-});
-```
-
-### 2. Environment Variables
-```bash
-# .env
-PORT=8000
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=password
-DB_NAME=legionx
-JWT_SECRET=your-secret-key
-BLOCKCHAIN_RPC_URL=https://mainnet.infura.io/v3/your-project-id
-MARKETPLACE_ADDRESS=0x...
-NFT_ADDRESS=0x...
-TOKEN_ADDRESS=0x...
-PINATA_API_KEY=your-pinata-api-key
-PINATA_SECRET_KEY=your-pinata-secret-key
-```
-
-## Testing
-
-### 1. Unit Tests
-```typescript
-// __tests__/auth.controller.test.ts
-describe('AuthController', () => {
-  it('should register a new user', async () => {
-    const req = {
-      body: {
-        name: 'Test User',
-        email: 'test@example.com',
-        password: 'password123',
-        walletAddress: '0x123'
-      }
-    };
-    const res = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn()
-    };
-
-    await authController.register(req, res);
-    expect(res.status).toHaveBeenCalledWith(201);
-  });
-});
-```
-
-## Deployment
-
-### 1. Docker Configuration
-```dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm install
-
-COPY . .
-RUN npm run build
-
-EXPOSE 8000
-
-CMD ["npm", "start"]
-```
-
-### 2. CI/CD Pipeline
-```yaml
-name: CI/CD
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install dependencies
-        run: npm install
-      - name: Run tests
-        run: npm test
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Deploy to production
-        run: |
-          docker build -t legionx-backend .
-          docker push legionx-backend
-``` 
+### Agent Controller
+
+1. **Create Agent**
+   ```typescript
+   POST /agents
+   Body: {
+     metadata: AIModelMetadata,
+     pricing: {
+       subscription?: {
+         monthly: number;
+         yearly: number;
+       };
+       oneTime?: number;
+     }
+   }
+   ```
+
+2. **List Agents**
+   ```typescript
+   GET /agents
+   Query: {
+     type?: string;
+     minPrice?: number;
+     maxPrice?: number;
+     capabilities?: string[];
+   }
+   ```
+
+3. **Get Agent**
+   ```typescript
+   GET /agents/:id
+   ```
+
+### Purchase Controller
+
+1. **Create Purchase**
+   ```typescript
+   POST /purchases
+   Body: {
+     listingId: string,
+     purchaseType: 'subscription' | 'oneTime',
+     duration?: number
+   }
+   ```
+
+2. **Get Purchases**
+   ```typescript
+   GET /purchases
+   ```
+
+3. **Get Purchase**
+   ```typescript
+   GET /purchases/:id
+   ```
+
+## Security Features
+
+1. **Authentication**
+   - JWT-based authentication
+   - User wallet validation
+   - Role-based access control
+
+2. **Transaction Security**
+   - Transaction signing
+   - UTxO validation
+   - Price verification
+   - Confirmation monitoring
+
+3. **Access Control**
+   - Token-based API access
+   - Rate limiting
+   - Usage tracking
+   - Subscription management
+
+## Future Improvements
+
+1. **Transaction Monitoring**
+   - Add webhook system for transaction confirmations
+   - Implement automatic status updates
+   - Add transaction confirmation monitoring
+   - Add support for custom confirmation thresholds
+   - Implement transaction rollback on failure
+
+2. **Performance Optimization**
+   - Implement batch operations
+   - Add caching layer
+   - Optimize UTxO queries
+   - Add parallel transaction processing
+
+3. **Enhanced Error Handling**
+   - Add comprehensive error logging
+   - Implement rate limiting
+   - Add transaction rollback support
+   - Add detailed error reporting
+
+4. **Additional Features**
+   - Support for batch operations
+   - Enhanced analytics
+   - Advanced search capabilities
+   - Real-time transaction notifications
+   - Agent versioning system
+   - Usage analytics
+   - Revenue sharing
+   - Multi-chain support 

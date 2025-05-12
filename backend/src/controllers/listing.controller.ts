@@ -10,16 +10,23 @@ interface AuthenticatedRequest extends Request {
 export class ListingController {
   private listingRepository = AppDataSource.getRepository(Listing);
 
-  createListing = async (req: AuthenticatedRequest, res: Response) => {
+  createListing = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-      const { agentId, price, fullPrice } = req.body;
+      const { agentId, price, fullPrice, modelMetadata } = req.body;
+
+      // Validate model metadata
+      if (!modelMetadata || !modelMetadata.accessPoint || !modelMetadata.accessPoint.endpoint) {
+        res.status(400).json({ error: 'Invalid model metadata: access point is required' });
+        return;
+      }
 
       const listing = this.listingRepository.create({
         agent: { id: agentId },
         seller: { id: req.user.sub },
         price,
         fullPrice,
-        status: 'active'
+        status: 'active',
+        metadata: modelMetadata
       });
 
       await this.listingRepository.save(listing);
@@ -29,7 +36,7 @@ export class ListingController {
     }
   };
 
-  getListings = async (req: Request, res: Response) => {
+  getListings = async (_: Request, res: Response): Promise<void> => {
     try {
       const listings = await this.listingRepository.find({
         where: { status: 'active' },
@@ -42,7 +49,7 @@ export class ListingController {
     }
   };
 
-  getListing = async (req: Request, res: Response) => {
+  getListing = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
       const listing = await this.listingRepository.findOne({
@@ -51,7 +58,8 @@ export class ListingController {
       });
 
       if (!listing) {
-        return res.status(404).json({ error: 'Listing not found' });
+        res.status(404).json({ error: 'Listing not found' });
+        return;
       }
 
       res.json({ listing });
@@ -60,22 +68,31 @@ export class ListingController {
     }
   };
 
-  updateListing = async (req: AuthenticatedRequest, res: Response) => {
+  updateListing = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
-      const { price, fullPrice, status } = req.body;
+      const { price, fullPrice, status, modelMetadata } = req.body;
 
       const listing = await this.listingRepository.findOne({
         where: { id: parseInt(id), seller: { id: req.user.sub } }
       });
 
       if (!listing) {
-        return res.status(404).json({ error: 'Listing not found' });
+        res.status(404).json({ error: 'Listing not found' });
+        return;
       }
 
       if (price) listing.price = price;
       if (fullPrice) listing.fullPrice = fullPrice;
       if (status) listing.status = status;
+      if (modelMetadata) {
+        // Validate updated model metadata
+        if (!modelMetadata.accessPoint || !modelMetadata.accessPoint.endpoint) {
+          res.status(400).json({ error: 'Invalid model metadata: access point is required' });
+          return;
+        }
+        listing.metadata = modelMetadata;
+      }
 
       await this.listingRepository.save(listing);
       res.json({ listing });
@@ -84,7 +101,7 @@ export class ListingController {
     }
   };
 
-  deleteListing = async (req: AuthenticatedRequest, res: Response) => {
+  deleteListing = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
       const listing = await this.listingRepository.findOne({
@@ -92,7 +109,8 @@ export class ListingController {
       });
 
       if (!listing) {
-        return res.status(404).json({ error: 'Listing not found' });
+        res.status(404).json({ error: 'Listing not found' });
+        return;
       }
 
       await this.listingRepository.remove(listing);

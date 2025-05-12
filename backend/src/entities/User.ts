@@ -6,26 +6,26 @@ import { Agent } from './Agent';
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ unique: true })
-  email: string;
+  email!: string;
 
-  @Column({ nullable: true })
-  wallet: string;
+  @Column({ unique: true })
+  wallet!: string;
 
   @OneToMany(() => Listing, listing => listing.seller)
-  listings: Listing[];
+  listings!: Listing[];
 
   @OneToMany(() => Purchase, purchase => purchase.buyer)
-  purchases: Purchase[];
+  purchases!: Purchase[];
 
   @OneToMany(() => Agent, agent => agent.creator)
-  agents: Agent[];
+  agents!: Agent[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 } 
