@@ -33,31 +33,31 @@ A decentralized marketplace for AI agents, built on the Cardano blockchain. This
 
 ### Blockchain
 - Cardano
-- Plutus Smart Contracts
+- Aiken Smart Contracts
 - Lucid Evolution SDK
 - Blockfrost API
 
 ### Storage
 - PostgreSQL
-- Redis
+- DBSync
 - IPFS/Pinata
-- AWS S3
 
 ## Getting Started
 
 ### Prerequisites
 - Node.js (v16+)
 - PostgreSQL
-- Redis
-- Cardano Node
+- DBSync
+- BlockFrost
+- Aiken Smart Contract
 - Pinata Account
 
 ### Installation
 
 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/ai-agent-marketplace.git
-cd ai-agent-marketplace
+git clone [https://github.com/neuralnex/legionX.git]
+cd legionX
 ```
 
 2. Install dependencies
@@ -211,16 +211,12 @@ npm run build
 4. Push to the branch
 5. Create a Pull Request
 
-## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 
 For support, please:
-1. Check the [documentation](docs/)
-2. Open an issue
-3. Join our [Discord community](https://discord.gg/your-discord)
+
 
 ## Acknowledgments
 
