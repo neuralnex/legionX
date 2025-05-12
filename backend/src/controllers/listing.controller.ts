@@ -1,122 +1,101 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { Listing } from '../entities/Listing';
-import { UserPayload } from '../types/auth';
+import { User } from '../entities/User';
+import { Agent } from '../entities/Agent';
+import { AppError } from '../middleware/error.middleware';
 
-interface AuthenticatedRequest extends Request {
-  user: UserPayload;
-}
+const listingRepository = AppDataSource.getRepository(Listing);
+const userRepository = AppDataSource.getRepository(User);
+const agentRepository = AppDataSource.getRepository(Agent);
 
 export class ListingController {
-  private listingRepository = AppDataSource.getRepository(Listing);
+  async createListing(req: Request, res: Response) {
+    const { agentId, price, duration, modelMetadata, metadataUri } = req.body;
+    const sellerId = (req as any).user.id;
 
-  createListing = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-      const { agentId, price, fullPrice, modelMetadata } = req.body;
-
-      // Validate model metadata
-      if (!modelMetadata || !modelMetadata.accessPoint || !modelMetadata.accessPoint.endpoint) {
-        res.status(400).json({ error: 'Invalid model metadata: access point is required' });
-        return;
-      }
-
-      const listing = this.listingRepository.create({
-        agent: { id: agentId },
-        seller: { id: req.user.sub },
-        price,
-        fullPrice,
-        status: 'active',
-        metadata: modelMetadata
-      });
-
-      await this.listingRepository.save(listing);
-      res.status(201).json({ listing });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to create listing' });
+    const seller = await userRepository.findOne({ where: { id: sellerId } });
+    if (!seller) {
+      throw new AppError('Seller not found', 404);
     }
-  };
 
-  getListings = async (_: Request, res: Response): Promise<void> => {
-    try {
-      const listings = await this.listingRepository.find({
-        where: { status: 'active' },
-        relations: ['agent', 'seller']
-      });
-
-      res.json({ listings });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch listings' });
+    const agent = await agentRepository.findOne({ where: { id: agentId } });
+    if (!agent) {
+      throw new AppError('Agent not found', 404);
     }
-  };
 
-  getListing = async (req: Request, res: Response): Promise<void> => {
-    try {
-      const { id } = req.params;
-      const listing = await this.listingRepository.findOne({
-        where: { id: parseInt(id) },
-        relations: ['agent', 'seller']
-      });
+    const listing = listingRepository.create({
+      seller,
+      agent,
+      price: BigInt(price),
+      duration,
+      modelMetadata,
+      metadataUri,
+      status: 'pending'
+    });
 
-      if (!listing) {
-        res.status(404).json({ error: 'Listing not found' });
-        return;
-      }
+    await listingRepository.save(listing);
+    res.status(201).json(listing);
+  }
 
-      res.json({ listing });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch listing' });
+  async getListing(req: Request, res: Response) {
+    const { id } = req.params;
+    const listing = await listingRepository.findOne({
+      where: { id },
+      relations: ['seller', 'agent']
+    });
+
+    if (!listing) {
+      throw new AppError('Listing not found', 404);
     }
-  };
 
-  updateListing = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-      const { id } = req.params;
-      const { price, fullPrice, status, modelMetadata } = req.body;
+    res.json(listing);
+  }
 
-      const listing = await this.listingRepository.findOne({
-        where: { id: parseInt(id), seller: { id: req.user.sub } }
-      });
+  async updateListing(req: Request, res: Response) {
+    const { id } = req.params;
+    const sellerId = (req as any).user.id;
+    const { price, duration, status } = req.body;
 
-      if (!listing) {
-        res.status(404).json({ error: 'Listing not found' });
-        return;
-      }
+    const listing = await listingRepository.findOne({
+      where: { id, seller: { id: sellerId } },
+      relations: ['seller']
+    });
 
-      if (price) listing.price = price;
-      if (fullPrice) listing.fullPrice = fullPrice;
-      if (status) listing.status = status;
-      if (modelMetadata) {
-        // Validate updated model metadata
-        if (!modelMetadata.accessPoint || !modelMetadata.accessPoint.endpoint) {
-          res.status(400).json({ error: 'Invalid model metadata: access point is required' });
-          return;
-        }
-        listing.metadata = modelMetadata;
-      }
-
-      await this.listingRepository.save(listing);
-      res.json({ listing });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to update listing' });
+    if (!listing) {
+      throw new AppError('Listing not found', 404);
     }
-  };
 
-  deleteListing = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-      const { id } = req.params;
-      const listing = await this.listingRepository.findOne({
-        where: { id: parseInt(id), seller: { id: req.user.sub } }
-      });
+    if (price) listing.price = BigInt(price);
+    if (duration) listing.duration = duration;
+    if (status) listing.status = status;
 
-      if (!listing) {
-        res.status(404).json({ error: 'Listing not found' });
-        return;
-      }
+    await listingRepository.save(listing);
+    res.json(listing);
+  }
 
-      await this.listingRepository.remove(listing);
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to delete listing' });
+  async deleteListing(req: Request, res: Response) {
+    const { id } = req.params;
+    const sellerId = (req as any).user.id;
+
+    const listing = await listingRepository.findOne({
+      where: { id, seller: { id: sellerId } },
+      relations: ['seller']
+    });
+
+    if (!listing) {
+      throw new AppError('Listing not found', 404);
     }
-  };
+
+    await listingRepository.remove(listing);
+    res.status(204).send();
+  }
+
+  async listListings(req: Request, res: Response) {
+    const listings = await listingRepository.find({
+      relations: ['seller', 'agent'],
+      order: { createdAt: 'DESC' }
+    });
+    res.json(listings);
+  }
 } 

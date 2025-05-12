@@ -1,27 +1,15 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
 import { PurchaseController } from '../controllers/purchase.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 
-const router: Router = Router();
+const router = Router();
 const purchaseController = new PurchaseController();
 
-// All routes are protected
+// Protected routes
 router.use(authMiddleware);
-
-const createPurchaseHandler = async (req: Request, res: Response) => {
-  await purchaseController.createPurchase(req, res);
-};
-
-const getPurchasesHandler = async (req: Request, res: Response) => {
-  await purchaseController.getPurchases(req, res);
-};
-
-const getPurchaseHandler = async (req: Request, res: Response) => {
-  await purchaseController.getPurchase(req, res);
-};
-
-router.post('/', createPurchaseHandler);
-router.get('/', getPurchasesHandler);
-router.get('/:id', getPurchaseHandler);
+router.post('/', purchaseController.createPurchase);
+router.get('/:id', purchaseController.getPurchase);
+router.put('/:id', purchaseController.updatePurchase);
+router.get('/', purchaseController.listPurchases);
 
 export default router; 

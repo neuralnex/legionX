@@ -2,17 +2,16 @@ import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { Purchase } from '../entities/Purchase';
 import { Listing } from '../entities/Listing';
+import { User } from '../entities/User';
+import { AppError } from '../middleware/error.middleware';
 import { LucidService } from '../services/lucid';
-import { UserPayload } from '../types/auth';
 import { config } from 'dotenv';
 
-interface AuthenticatedRequest extends Request {
-  user: UserPayload;
-}
+const purchaseRepository = AppDataSource.getRepository(Purchase);
+const listingRepository = AppDataSource.getRepository(Listing);
+const userRepository = AppDataSource.getRepository(User);
 
 export class PurchaseController {
-  private purchaseRepository = AppDataSource.getRepository(Purchase);
-  private listingRepository = AppDataSource.getRepository(Listing);
   private lucidService: LucidService;
 
   constructor() {
@@ -24,90 +23,81 @@ export class PurchaseController {
     );
   }
 
-  createPurchase = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-      const { listingId, isFullPurchase } = req.body;
-      const buyerAddress = req.user.wallet;
+  async createPurchase(req: Request, res: Response) {
+    const { listingId } = req.body;
+    const buyerId = (req as any).user.id;
 
-      if (!buyerAddress) {
-        res.status(400).json({ error: 'User wallet address not found' });
-        return;
-      }
+    const listing = await listingRepository.findOne({
+      where: { id: listingId },
+      relations: ['seller']
+    });
 
-      const listing = await this.listingRepository.findOne({
-        where: { id: parseInt(listingId) },
-        relations: ['seller']
-      });
-
-      if (!listing) {
-        res.status(404).json({ error: 'Listing not found' });
-        return;
-      }
-
-      if (listing.status !== 'active') {
-        res.status(400).json({ error: 'Listing is not active' });
-        return;
-      }
-
-      // Build transaction
-      const listingUTxO = await this.lucidService.getListingUTxO(listing.txHash);
-      if (!listingUTxO) {
-        res.status(404).json({ error: 'Listing UTxO not found' });
-        return;
-      }
-      const buyerUtxos = await this.lucidService.getLucid().utxosAt(buyerAddress);
-      const action = await this.lucidService.buildPurchaseTransaction(
-        listingUTxO,
-        buyerUtxos,
-        listing.seller.wallet
-      );
-
-      // Create purchase record
-      const purchase = this.purchaseRepository.create({
-        buyer: { id: req.user.sub },
-        listing: { id: parseInt(listingId) },
-        amount: BigInt(isFullPurchase ? listing.fullPrice || listing.price : listing.price),
-        status: 'pending',
-        txHash: action
-      });
-
-      await this.purchaseRepository.save(purchase);
-
-      res.status(201).json({ purchase, action });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to create purchase' });
+    if (!listing) {
+      throw new AppError('Listing not found', 404);
     }
-  };
 
-  getPurchases = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-      const purchases = await this.purchaseRepository.find({
-        where: { buyer: { id: req.user.sub } },
-        relations: ['listing', 'listing.agent']
-      });
+    const buyer = await userRepository.findOne({
+      where: { id: buyerId }
+    });
 
-      res.json({ purchases });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch purchases' });
+    if (!buyer) {
+      throw new AppError('Buyer not found', 404);
     }
-  };
 
-  getPurchase = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-      const { id } = req.params;
-      const purchase = await this.purchaseRepository.findOne({
-        where: { id: parseInt(id), buyer: { id: req.user.sub } },
-        relations: ['listing', 'listing.agent']
-      });
+    const purchase = purchaseRepository.create({
+      buyer,
+      listing,
+      amount: listing.price,
+      status: 'pending'
+    });
 
-      if (!purchase) {
-        res.status(404).json({ error: 'Purchase not found' });
-        return;
-      }
+    await purchaseRepository.save(purchase);
+    res.status(201).json(purchase);
+  }
 
-      res.json({ purchase });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch purchase' });
+  async getPurchase(req: Request, res: Response) {
+    const { id } = req.params;
+    const purchase = await purchaseRepository.findOne({
+      where: { id },
+      relations: ['buyer', 'listing', 'listing.seller']
+    });
+
+    if (!purchase) {
+      throw new AppError('Purchase not found', 404);
     }
-  };
+
+    res.json(purchase);
+  }
+
+  async updatePurchase(req: Request, res: Response) {
+    const { id } = req.params;
+    const buyerId = (req as any).user.id;
+    const { status, txHash, confirmations } = req.body;
+
+    const purchase = await purchaseRepository.findOne({
+      where: { id, buyer: { id: buyerId } },
+      relations: ['buyer']
+    });
+
+    if (!purchase) {
+      throw new AppError('Purchase not found', 404);
+    }
+
+    if (status) purchase.status = status;
+    if (txHash) purchase.txHash = txHash;
+    if (confirmations) purchase.confirmations = confirmations;
+
+    await purchaseRepository.save(purchase);
+    res.json(purchase);
+  }
+
+  async listPurchases(req: Request, res: Response) {
+    const buyerId = (req as any).user.id;
+    const purchases = await purchaseRepository.find({
+      where: { buyer: { id: buyerId } },
+      relations: ['listing', 'listing.seller'],
+      order: { createdAt: 'DESC' }
+    });
+    res.json(purchases);
+  }
 } 
