@@ -1,4 +1,4 @@
-import { dbSyncService } from '../config/database';
+import { dbSyncService, UTXO, TransactionDetails } from '../config/database';
 import { PinataService, NFTMetadata } from './pinata';
 
 export class NFTService {
@@ -12,7 +12,7 @@ export class NFTService {
     try {
       // 1. Verify ownership using DBSync
       const utxos = await dbSyncService.getUtxosForAddress(ownerAddress);
-      const hasAsset = utxos.some(utxo => 
+      const hasAsset = utxos.some((utxo: UTXO) => 
         utxo.assets && utxo.assets[assetId] && utxo.assets[assetId] > 0
       );
 
@@ -41,15 +41,13 @@ export class NFTService {
     }
   }
 
-  private extractIPFSHash(txDetails: any): string | null {
+  private extractIPFSHash(txDetails: TransactionDetails): string | null {
     try {
       // Extract IPFS hash from transaction metadata
-      // This will depend on how you're storing the IPFS hash in the transaction
       const metadata = txDetails.metadata;
       if (!metadata) return null;
 
       // Example: Looking for IPFS hash in metadata
-      // Adjust this based on your actual metadata structure
       const ipfsHash = metadata['674']?.msg || metadata['674']?.ipfs;
       return ipfsHash || null;
     } catch (error) {
@@ -61,11 +59,11 @@ export class NFTService {
   async verifyAccess(assetId: string, ownerAddress: string): Promise<boolean> {
     try {
       const utxos = await dbSyncService.getUtxosForAddress(ownerAddress);
-      return utxos.some(utxo => 
+      return utxos.some((utxo: UTXO) => 
         utxo.assets && utxo.assets[assetId] && utxo.assets[assetId] > 0
       );
     } catch (error) {
-      console.error('Error verifying NFT access:', error);
+      console.error('Error verifying access:', error);
       return false;
     }
   }

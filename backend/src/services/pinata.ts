@@ -1,4 +1,4 @@
-import { PinataSDK } from 'pinata-web3';
+import { PinataSDK, FileObject } from 'pinata-web3';
 import { config } from 'dotenv';
 import { Logger } from '../utils/logger';
 import { ValidationError } from '../types/errors';
@@ -89,7 +89,7 @@ export class PinataService {
     }
   }
 
-  async uploadFile(file: File): Promise<string> {
+  async uploadFile(file: FileObject): Promise<string> {
     try {
       const result = await this.pinata.upload.file(file);
       this.logger.info(`File uploaded successfully: ${result.IpfsHash}`);
