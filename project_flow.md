@@ -1,7 +1,7 @@
 # Project Flow Documentation
 
 ## System Overview
-The AI Agent Marketplace is a decentralized platform that enables users to create, list, purchase, and manage AI agents using NFTs on the Cardano blockchain.
+The AI Agent Marketplace is a decentralized platform that enables users to list, purchase, and manage AI agents using NFTs on the Cardano blockchain.
 
 ## Core Flows
 
