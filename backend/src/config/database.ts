@@ -21,13 +21,13 @@ export const AppDataSource = new DataSource({
 // DBSync service for blockchain data
 export class DBSyncService {
   async getUtxosForAddress(address: string): Promise<UTXO[]> {
-    // Implementation will depend on your DBSync setup
+    // Implementation will depend on  DBSync setup
     // This is a placeholder implementation
     return [];
   }
 
   async getTransactionDetails(txHash: string): Promise<TransactionDetails | null> {
-    // Implementation will depend on your DBSync setup
+    // Implementation will depend on DBSync setup
     // This is a placeholder implementation
     return null;
   }
