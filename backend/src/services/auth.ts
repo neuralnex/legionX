@@ -2,6 +2,8 @@ import { User } from '../entities/User';
 import { AppDataSource } from '../config/database';
 import * as jose from 'jose';
 import { UserPayload } from '../types/auth';
+import { RegisterRequest, LinkWalletRequest } from '../types/auth';
+import { Logger } from '../utils/logger';
 
 interface JWTPayload extends jose.JWTPayload {
   sub: string;
@@ -12,12 +14,60 @@ interface JWTPayload extends jose.JWTPayload {
 export class AuthService {
   private userRepository = AppDataSource.getRepository(User);
 
-  async createUser(email: string, wallet?: string): Promise<User> {
-    const user = this.userRepository.create({
-      email,
-      wallet
-    });
-    return await this.userRepository.save(user);
+  /**
+   * Register a new user
+   */
+  static async register(data: RegisterRequest): Promise<User> {
+    try {
+      const userRepo = AppDataSource.getRepository(User);
+      
+      // Create new user
+      const user = userRepo.create({
+        email: data.email,
+        wallet: data.wallet,
+        username: data.email.split('@')[0], // Generate username from email
+        password: '', // Password will be set later
+      });
+
+      // Save user
+      return await userRepo.save(user);
+    } catch (error) {
+      Logger.error('Error registering user:', error);
+      throw new Error('Failed to register user');
+    }
+  }
+
+  /**
+   * Find user by wallet address
+   */
+  static async findByWallet(wallet: string): Promise<User | null> {
+    try {
+      const userRepo = AppDataSource.getRepository(User);
+      return await userRepo.findOne({ where: { wallet } });
+    } catch (error) {
+      Logger.error('Error finding user by wallet:', error);
+      throw new Error('Failed to find user');
+    }
+  }
+
+  /**
+   * Link wallet to user
+   */
+  static async linkWallet(data: LinkWalletRequest): Promise<User> {
+    try {
+      const userRepo = AppDataSource.getRepository(User);
+      const user = await userRepo.findOne({ where: { email: data.email } });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      user.wallet = data.wallet;
+      return await userRepo.save(user);
+    } catch (error) {
+      Logger.error('Error linking wallet:', error);
+      throw new Error('Failed to link wallet');
+    }
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
@@ -26,15 +76,6 @@ export class AuthService {
 
   async getUserByWallet(wallet: string): Promise<User | null> {
     return await this.userRepository.findOne({ where: { wallet } });
-  }
-
-  async linkWallet(email: string, wallet: string): Promise<User> {
-    const user = await this.getUserByEmail(email);
-    if (!user) {
-      throw new Error('User not found');
-    }
-    user.wallet = wallet;
-    return await this.userRepository.save(user);
   }
 
   async generateToken(user: User): Promise<string> {

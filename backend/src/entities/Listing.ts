@@ -49,6 +49,27 @@ export class Listing {
   @OneToMany(() => Purchase, purchase => purchase.listing)
   purchases!: Purchase[];
 
+  @Column()
+  title!: string;
+
+  @Column()
+  description!: string;
+
+  @Column()
+  assetId!: string;
+
+  @Column()
+  ownerAddress!: string;
+
+  @Column({ default: false })
+  isPremium!: boolean;
+
+  @Column({ nullable: true })
+  premiumExpiry!: Date;
+
+  @Column({ default: false })
+  isActive!: boolean;
+
   @CreateDateColumn()
   createdAt!: Date;
 

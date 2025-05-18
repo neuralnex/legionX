@@ -11,6 +11,22 @@ export class Logger {
     return `[${timestamp}] [${level}] [${this.context}] ${message}${errorDetails}`;
   }
 
+  static info(message: string): void {
+    console.log(`[INFO] ${message}`);
+  }
+
+  static error(message: string, error?: any): void {
+    console.error(`[ERROR] ${message}`, error);
+  }
+
+  static warn(message: string): void {
+    console.warn(`[WARN] ${message}`);
+  }
+
+  static debug(message: string, data?: any): void {
+    console.debug(`[DEBUG] ${message}`, data);
+  }
+
   info(message: string): void {
     console.log(this.formatMessage('INFO', message));
   }

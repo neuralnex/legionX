@@ -17,9 +17,7 @@ export class PurchaseController {
   constructor() {
     config(); // Load environment variables
     this.lucidService = new LucidService(
-      process.env.BLOCKFROST_API_KEY || '',
-      process.env.MARKET_VALIDATOR_ADDRESS || '',
-      process.env.ORACLE_VALIDATOR_ADDRESS || ''
+      process.env.BLOCKFROST_API_KEY || ''
     );
   }
 

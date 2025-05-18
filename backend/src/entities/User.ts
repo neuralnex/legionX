@@ -8,11 +8,23 @@ export class User {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ unique: true })
+  @Column()
+  username!: string;
+
+  @Column()
   email!: string;
 
-  @Column({ unique: true })
-  wallet!: string;
+  @Column()
+  password!: string;
+
+  @Column({ nullable: true })
+  wallet?: string;
+
+  @Column({ default: false })
+  hasAnalyticsAccess!: boolean;
+
+  @Column({ nullable: true })
+  analyticsExpiry!: Date;
 
   @OneToMany(() => Listing, listing => listing.seller)
   listings!: Listing[];

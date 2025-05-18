@@ -1,7 +1,211 @@
 # Backend Flow Documentation
 
 ## Overview
-The backend is built using TypeScript and integrates with the Cardano blockchain using Lucid Evolution. It provides a robust API for managing AI model listings, purchases, and subscriptions.
+The backend is built using TypeScript, Node.js, and follows a modular architecture with clear separation of concerns. It uses TypeORM for database operations and includes blockchain integration through DBSync.
+
+## Directory Structure
+
+### `/src`
+Main source code directory containing all application logic.
+
+#### `/config`
+Configuration files and database setup.
+
+**database.ts**
+- `AppDataSource`: TypeORM data source configuration
+- `DBSyncService`: Blockchain data synchronization service
+  - `getUtxosForAddress(address)`: Retrieves UTXOs for a given address
+  - `getTransactionDetails(txHash)`: Gets transaction details from blockchain
+- Types:
+  - `UTXO`: Represents unspent transaction outputs
+  - `TransactionDetails`: Contains transaction metadata and IPFS information
+
+#### `/controllers`
+Request handlers and business logic controllers.
+
+**auth.controller.ts**
+- User authentication and authorization
+- Endpoints:
+  - `POST /auth/register`: Register new user
+  - `POST /auth/link-wallet`: Link wallet to user
+  - `POST /auth/login/wallet`: Login with wallet
+  - `GET /auth/verify`: Verify JWT token
+  - `GET /auth/profile`: Get user profile (protected)
+
+**listing.controller.ts**
+- NFT listing operations
+- Endpoints:
+  - `POST /listings`: Create new listing
+  - `GET /listings`: Get all listings
+  - `GET /listings/:id`: Get specific listing
+  - `PUT /listings/:id`: Update listing
+  - `DELETE /listings/:id`: Delete listing
+
+**purchase.controller.ts**
+- NFT purchase transactions
+- Endpoints:
+  - `POST /purchases`: Create new purchase
+  - `GET /purchases`: Get user's purchases
+  - `GET /purchases/:id`: Get specific purchase
+  - `POST /purchases/:id/confirm`: Confirm purchase
+
+**premium.controller.ts**
+- Premium features and analytics
+- Endpoints:
+  - `GET /premium/features`: Get premium features
+  - `GET /premium/analytics/features`: Get analytics features
+  - `POST /premium/listing/:listingId`: Purchase premium listing
+  - `POST /premium/analytics/subscribe`: Subscribe to analytics
+
+#### `/entities`
+TypeORM entity definitions for database models.
+
+**User.ts**
+- User entity with fields:
+  - `id`: Primary key
+  - `username`: User's username
+  - `email`: User's email
+  - `password`: Hashed password
+  - `wallet`: Optional wallet address
+  - `hasAnalyticsAccess`: Analytics subscription status
+  - `analyticsExpiry`: Analytics subscription expiry date
+  - Relationships with listings, purchases, and agents
+
+**Listing.ts**
+- NFT listing entity with fields:
+  - `id`: Primary key
+  - `title`: Listing title
+  - `description`: Listing description
+  - `price`: Listing price
+  - `assetId`: NFT asset ID
+  - `ownerAddress`: Owner's wallet address
+  - `isPremium`: Premium listing status
+  - `premiumExpiry`: Premium status expiry date
+  - `isActive`: Listing status
+  - Relationships with seller and purchases
+
+#### `/middleware`
+Custom middleware functions.
+
+**auth.middleware.ts**
+- JWT token verification
+- User authentication
+- Role-based access control
+
+#### `/routes`
+API route definitions.
+
+**auth.routes.ts**
+- Authentication routes:
+  - Public routes for registration and login
+  - Protected routes for profile access
+
+**listing.routes.ts**
+- Listing management routes
+- CRUD operations for NFT listings
+
+**purchase.routes.ts**
+- Purchase transaction routes
+- Purchase creation and confirmation
+
+**premium.routes.ts**
+- Premium features routes
+- Analytics subscription routes
+
+#### `/services`
+Core business logic and external service integrations.
+
+**auth.service.ts**
+- User authentication logic
+- JWT token management
+- Wallet linking functionality
+
+**fee.service.ts**
+- Transaction fee calculation (3%)
+- Premium listing processing
+- Analytics subscription management
+
+**nft.service.ts**
+- NFT metadata management
+- IPFS integration
+- Blockchain data synchronization
+
+**pinata.ts**
+- IPFS file storage
+- Metadata management
+- File pinning/unpinning
+
+#### `/types`
+TypeScript type definitions.
+
+**auth.ts**
+- Authentication types:
+  - `UserPayload`: JWT payload structure
+  - `RegisterRequest`: Registration request data
+  - `LinkWalletRequest`: Wallet linking request data
+  - `AuthError`: Authentication error structure
+
+#### `/utils`
+Utility functions.
+
+**logger.ts**
+- Logging utility with levels:
+  - `info`: Information logging
+  - `error`: Error logging
+  - `warn`: Warning logging
+  - `debug`: Debug logging (development only)
+
+## Business Logic
+
+### Transaction Fees
+- 3% fee on all sales and resales
+- Fee calculation in `FeeService`
+- Automatic fee deduction from transactions
+
+### Premium Features
+- Enhanced listing visibility
+- Priority in search results
+- Custom listing badges
+- Advanced analytics access
+- 30-day premium status
+
+### Analytics
+- Market trend analysis
+- Price history tracking
+- Competitor analysis
+- Sales performance metrics
+- Custom reports generation
+- Monthly subscription model
+
+## Security Features
+- JWT-based authentication
+- Role-based access control
+- Input validation
+- Error handling
+- Secure password hashing
+- Wallet address verification
+
+## Dependencies
+- TypeScript
+- Node.js
+- Express.js
+- TypeORM
+- PostgreSQL
+- JWT
+- IPFS/Pinata
+- DBSync
+
+## Environment Variables
+Required environment variables:
+- `DB_HOST`: Database host
+- `DB_PORT`: Database port
+- `DB_USER`: Database username
+- `DB_PASSWORD`: Database password
+- `DB_NAME`: Database name
+- `JWT_SECRET`: Secret key for JWT
+- `PINATA_JWT`: Pinata JWT token
+- `PINATA_GATEWAY`: Pinata gateway URL
+- `NODE_ENV`: Environment (development/production)
 
 ## AI Agent NFT System
 
@@ -248,23 +452,12 @@ private async retry<T>(operation: () => Promise<T>): Promise<T> {
 }
 ```
 
-## Environment Configuration
-
-Required environment variables:
-```env
-BLOCKFROST_API_KEY=your_blockfrost_api_key
-MARKET_VALIDATOR_ADDRESS=your_market_validator_address
-ORACLE_VALIDATOR_ADDRESS=your_oracle_validator_address
-PINATA_API_KEY=your_pinata_api_key
-PINATA_SECRET_KEY=your_pinata_secret_key
-```
-
 ## API Endpoints
 
 ### Agent Controller
 
 1. **Create Agent**
-   ```typescript
+```typescript
    POST /agents
    Body: {
      metadata: AIModelMetadata,
@@ -279,7 +472,7 @@ PINATA_SECRET_KEY=your_pinata_secret_key
    ```
 
 2. **List Agents**
-   ```typescript
+```typescript
    GET /agents
    Query: {
      type?: string;
@@ -290,14 +483,14 @@ PINATA_SECRET_KEY=your_pinata_secret_key
    ```
 
 3. **Get Agent**
-   ```typescript
+```typescript
    GET /agents/:id
    ```
 
 ### Purchase Controller
 
 1. **Create Purchase**
-   ```typescript
+```typescript
    POST /purchases
    Body: {
      listingId: string,
@@ -312,28 +505,9 @@ PINATA_SECRET_KEY=your_pinata_secret_key
    ```
 
 3. **Get Purchase**
-   ```typescript
+```typescript
    GET /purchases/:id
    ```
-
-## Security Features
-
-1. **Authentication**
-   - JWT-based authentication
-   - User wallet validation
-   - Role-based access control
-
-2. **Transaction Security**
-   - Transaction signing
-   - UTxO validation
-   - Price verification
-   - Confirmation monitoring
-
-3. **Access Control**
-   - Token-based API access
-   - Rate limiting
-   - Usage tracking
-   - Subscription management
 
 ## Future Improvements
 

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth';
 import { RegisterRequest, LinkWalletRequest, AuthError } from '../types/auth';
+import { Logger } from '../utils/logger';
 
 export class AuthController {
   private authService: AuthService;
@@ -9,49 +10,105 @@ export class AuthController {
     this.authService = new AuthService();
   }
 
-  register = async (req: Request<{}, {}, RegisterRequest>, res: Response): Promise<void> => {
+  /**
+   * Register a new user
+   */
+  static async register(req: Request, res: Response) {
     try {
       const { email, wallet } = req.body;
+      const user = await AuthService.register({ email, wallet });
+      const token = await new AuthService().generateToken(user);
       
-      const existingUser = await this.authService.getUserByEmail(email);
-      if (existingUser) {
-        const error: AuthError = {
-          code: 'EMAIL_EXISTS',
-          message: 'Email already registered'
-        };
-        res.status(400).json({ error });
-        return;
+      res.json({
+        message: 'User registered successfully',
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          wallet: user.wallet
+        }
+      });
+    } catch (error) {
+      Logger.error('Error registering user:', error);
+      res.status(400).json({ error: 'Failed to register user' });
+    }
+  }
+
+  /**
+   * Link wallet to user
+   */
+  static async linkWallet(req: Request, res: Response) {
+    try {
+      const { email, wallet } = req.body;
+      const user = await AuthService.linkWallet({ email, wallet });
+      const token = await new AuthService().generateToken(user);
+      
+      res.json({
+        message: 'Wallet linked successfully',
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          wallet: user.wallet
+        }
+      });
+    } catch (error) {
+      Logger.error('Error linking wallet:', error);
+      res.status(400).json({ error: 'Failed to link wallet' });
+    }
+  }
+
+  /**
+   * Login with wallet
+   */
+  static async loginWithWallet(req: Request, res: Response) {
+    try {
+      const { wallet } = req.body;
+      const user = await AuthService.findByWallet(wallet);
+      
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
       }
 
-      const user = await this.authService.createUser(email, wallet);
-      const token = this.authService.generateToken(user);
-
-      res.status(201).json({ user, token });
-    } catch (error) {
-      const authError: AuthError = {
-        code: 'REGISTRATION_FAILED',
-        message: error instanceof Error ? error.message : 'Failed to register user'
-      };
-      res.status(500).json({ error: authError });
-    }
-  };
-
-  linkWallet = async (req: Request<{}, {}, LinkWalletRequest>, res: Response): Promise<void> => {
-    try {
-      const { email, wallet } = req.body;
+      const token = await new AuthService().generateToken(user);
       
-      const user = await this.authService.linkWallet(email, wallet);
-      const token = this.authService.generateToken(user);
-
-      res.json({ user, token });
+      res.json({
+        message: 'Login successful',
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          wallet: user.wallet
+        }
+      });
     } catch (error) {
-      const authError: AuthError = {
-        code: 'WALLET_LINK_FAILED',
-        message: error instanceof Error ? error.message : 'Failed to link wallet'
-      };
-      res.status(500).json({ error: authError });
+      Logger.error('Error logging in with wallet:', error);
+      res.status(400).json({ error: 'Failed to login' });
     }
-  };
+  }
+
+  /**
+   * Verify token
+   */
+  static async verifyToken(req: Request, res: Response) {
+    try {
+      const token = req.headers.authorization?.split(' ')[1];
+      
+      if (!token) {
+        return res.status(401).json({ error: 'No token provided' });
+      }
+
+      const payload = await new AuthService().verifyToken(token);
+      
+      res.json({
+        message: 'Token is valid',
+        user: payload
+      });
+    } catch (error) {
+      Logger.error('Error verifying token:', error);
+      res.status(401).json({ error: 'Invalid token' });
+    }
+  }
 
   getProfile = async (req: Request, res: Response): Promise<void> => {
     try {
