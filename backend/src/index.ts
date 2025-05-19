@@ -11,6 +11,7 @@ import authRoutes from './routes/auth.routes';
 import listingRoutes from './routes/listing.routes';
 import purchaseRoutes from './routes/purchase.routes';
 import accessRoutes from './routes/access.routes';
+import premiumRoutes from './routes/premium.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -51,6 +52,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/listings', listingRoutes);
 app.use('/api/v1/purchases', purchaseRoutes);
 app.use('/api/v1/access', accessRoutes);
+app.use('/api/v1/premium', premiumRoutes);
 
 // Error handling
 app.use(errorHandler);
