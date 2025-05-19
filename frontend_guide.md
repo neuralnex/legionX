@@ -444,4 +444,456 @@ export const CustomButton = ({ children, ...props }) => {
    - Add unit tests
    - Implement E2E testing
    - Add performance testing
-   - Implement accessibility testing 
+   - Implement accessibility testing
+
+## Root Page Layout
+
+The root page (`/`) serves as the main landing page and navigation hub for the application. Here's a detailed breakdown of its structure and components:
+
+### Layout Structure
+
+```tsx
+<Layout>
+  <Header />
+  <MainContent />
+  <Footer />
+</Layout>
+```
+
+### Header Component
+- **Logo**: LegionX logo positioned on the left
+- **Navigation Menu**: Centered navigation links
+- **Wallet Connect**: Right-aligned wallet connection button
+- **User Menu**: Appears when wallet is connected, showing:
+  - Truncated wallet address
+  - Profile link
+  - Logout option
+
+### Main Navigation Buttons
+
+The root page features a grid of main navigation buttons, each styled as a card with an icon and description:
+
+1. **Create Listing**
+   - Icon: Plus circle
+   - Description: "Create a new listing for your content"
+   - Action: Navigates to `/create-listing`
+   - Required: Connected wallet
+
+2. **Browse Listings**
+   - Icon: Search
+   - Description: "Browse available content listings"
+   - Action: Navigates to `/listings`
+   - Access: Public
+
+3. **My Listings**
+   - Icon: List
+   - Description: "Manage your active listings"
+   - Action: Navigates to `/my-listings`
+   - Required: Connected wallet
+
+4. **My Purchases**
+   - Icon: Shopping bag
+   - Description: "View your purchased content"
+   - Action: Navigates to `/my-purchases`
+   - Required: Connected wallet
+
+5. **Profile**
+   - Icon: User
+   - Description: "Manage your profile settings"
+   - Action: Navigates to `/profile`
+   - Required: Connected wallet
+
+### Styling
+
+```css
+.nav-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  padding: 2rem;
+}
+
+.nav-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+
+.nav-card:hover {
+  transform: translateY(-4px);
+}
+
+.nav-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+}
+```
+
+### Authentication Flow
+
+1. **Wallet Connection**
+   - Users must connect their wallet to access protected features
+   - Connection status is persisted in local storage
+   - Wallet address is displayed in header when connected
+
+2. **Protected Routes**
+   - Create Listing
+   - My Listings
+   - My Purchases
+   - Profile
+   - These routes redirect to wallet connection if not authenticated
+
+3. **Public Routes**
+   - Browse Listings
+   - Home page
+   - These are accessible without wallet connection
+
+### Responsive Design
+
+- Desktop: 4-column grid layout
+- Tablet: 3-column grid layout
+- Mobile: 2-column grid layout
+- Header collapses to hamburger menu on mobile
+
+### State Management
+
+```typescript
+interface RootState {
+  wallet: {
+    connected: boolean;
+    address: string | null;
+  };
+  user: {
+    profile: UserProfile | null;
+  };
+}
+```
+
+### Error Handling
+
+- Wallet connection errors display toast notifications
+- Network errors show retry options
+- Invalid routes redirect to 404 page
+
+### Loading States
+
+- Skeleton loaders for navigation cards
+- Spinner for wallet connection
+- Progress indicators for protected route checks
+
+### Accessibility
+
+- ARIA labels for all navigation buttons
+- Keyboard navigation support
+- High contrast mode support
+- Screen reader friendly structure
+
+### Performance Considerations
+
+- Lazy loading for route components
+- Image optimization for icons
+- Minimal initial bundle size
+- Efficient state updates
+
+This guide provides a foundation for implementing the root page and navigation system. The layout is designed to be intuitive, responsive, and user-friendly while maintaining security through wallet-based authentication.
+
+## Authentication Components
+
+### 1. Auth Provider
+```typescript
+// components/auth/AuthProvider.tsx
+import { createContext, useContext, useState, useEffect } from 'react';
+import { useWallet } from '../hooks/useWallet';
+
+interface AuthContextType {
+  isAuthenticated: boolean;
+  user: User | null;
+  login: (wallet: string) => Promise<void>;
+  logout: () => void;
+  loading: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { address, isConnected } = useWallet();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (isConnected && address) {
+        try {
+          const response = await api.post('/login/wallet', { wallet: address });
+          setUser(response.data.user);
+        } catch (error) {
+          console.error('Auth check failed:', error);
+        }
+      }
+      setLoading(false);
+    };
+
+    checkAuth();
+  }, [isConnected, address]);
+
+  const login = async (wallet: string) => {
+    try {
+      const response = await api.post('/login/wallet', { wallet });
+      setUser(response.data.user);
+      localStorage.setItem('token', response.data.token);
+    } catch (error) {
+      throw new Error('Login failed');
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('token');
+  };
+
+  return (
+    <AuthContext.Provider value={{ isAuthenticated: !!user, user, login, logout, loading }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+```
+
+### 2. Protected Route Component
+```typescript
+// components/auth/ProtectedRoute.tsx
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+
+export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+```
+
+### 3. Login Page
+```typescript
+// pages/Login.tsx
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { useWallet } from '../hooks/useWallet';
+
+const Login = () => {
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+  const { address, connect } = useWallet();
+
+  const handleLogin = async () => {
+    try {
+      if (!address) {
+        await connect();
+        return;
+      }
+      
+      await login(address);
+      const from = location.state?.from?.pathname || '/';
+      navigate(from, { replace: true });
+    } catch (error) {
+      setError('Login failed. Please try again.');
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
+        <div>
+          <h2 className="text-center text-3xl font-bold">Welcome to LegionX</h2>
+          <p className="mt-2 text-center text-gray-600">
+            Connect your wallet to continue
+          </p>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 text-red-500 p-4 rounded">
+            {error}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <button
+            onClick={handleLogin}
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700"
+          >
+            {address ? 'Login with Wallet' : 'Connect Wallet'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+### 4. Auth Hook
+```typescript
+// hooks/useAuth.ts
+import { useContext } from 'react';
+import { AuthContext } from '../components/auth/AuthProvider';
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+```
+
+### 5. API Authentication Interceptor
+```typescript
+// utils/api.ts
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+```
+
+### 6. Route Configuration
+```typescript
+// App.tsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './components/auth/AuthProvider';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
+
+const App = () => {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Home />} />
+          <Route
+            path="/create-listing"
+            element={
+              <ProtectedRoute>
+                <CreateListing />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-listings"
+            element={
+              <ProtectedRoute>
+                <MyListings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-purchases"
+            element={
+              <ProtectedRoute>
+                <MyPurchases />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+};
+```
+
+### 7. User Profile Interface
+```typescript
+// types/user.ts
+export interface User {
+  id: string;
+  email: string;
+  wallet: string;
+  username: string;
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+### 8. Authentication State Management
+```typescript
+// stores/authStore.ts
+import create from 'zustand';
+
+interface AuthState {
+  user: User | null;
+  token: string | null;
+  setUser: (user: User | null) => void;
+  setToken: (token: string | null) => void;
+  logout: () => void;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  token: localStorage.getItem('token'),
+  setUser: (user) => set({ user }),
+  setToken: (token) => {
+    if (token) {
+      localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
+    }
+    set({ token });
+  },
+  logout: () => {
+    localStorage.removeItem('token');
+    set({ user: null, token: null });
+  },
+}));
+```
+
+This authentication system provides:
+- Wallet-based authentication
+- Protected routes
+- Persistent sessions
+- Automatic token management
+- Secure API communication
+- User profile management
+
+The system integrates with the existing wallet connection and provides a seamless authentication experience for users. 
