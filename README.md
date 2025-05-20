@@ -21,7 +21,6 @@ A decentralized marketplace for AI agents, built on the Cardano blockchain. This
 - TailwindCSS
 - Framer Motion
 - React Query
-- Zustand
 
 ### Backend
 - Node.js with TypeScript
@@ -172,3 +171,4 @@ For support, please:
 - [Lucid Evolution](https://github.com/lucid-evolution/lucid) for Cardano integration
 - [Pinata](https://pinata.cloud) for IPFS storage
 - [Blockfrost](https://blockfrost.io) for Cardano API
+- [Cardano](https://developers.cardano.org/tools) for Cardano builder tools
