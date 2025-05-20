@@ -4,7 +4,7 @@ A decentralized marketplace for AI agents, built on the Cardano blockchain. This
 
 ## Features
 
-- 🎯 AI Agent Creation and Management
+- 🎯 AI Agent Listing and Management
 - 💰 NFT-based Ownership
 - 🔒 Secure Access Control
 - 💳 Flexible Pricing Models
@@ -45,7 +45,7 @@ A decentralized marketplace for AI agents, built on the Cardano blockchain. This
 ## Getting Started
 
 ### Prerequisites
-- Node.js (v16+)
+- Node.js 
 - PostgreSQL
 - DBSync
 - BlockFrost
@@ -64,7 +64,7 @@ cd legionX
 ```bash
 # Install backend dependencies
 cd backend
-npm install
+pnpm install
 
 # Install frontend dependencies
 cd ../frontend
@@ -93,66 +93,14 @@ VITE_PINATA_SECRET_KEY=your_pinata_secret_key
 ```bash
 # Start backend
 cd backend
-npm run dev
+pnpm run dev
 
 # Start frontend
 cd ../frontend
 npm run dev
 ```
 
-## Project Structure
 
-```
-├── backend/
-│   ├── src/
-│   │   ├── controllers/
-│   │   ├── services/
-│   │   ├── entities/
-│   │   ├── middlewares/
-│   │   ├── utils/
-│   │   └── config/
-│   ├── tests/
-│   └── docs/
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── hooks/
-│   │   ├── stores/
-│   │   └── utils/
-│   ├── public/
-│   └── tests/
-└── docs/
-    ├── architecture.md
-    ├── flow.md
-    └── api.md
-```
-
-## API Documentation
-
-### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - User registration
-- `GET /api/auth/me` - Get current user
-
-### Agents
-- `GET /api/agents` - List all agents
-- `GET /api/agents/:id` - Get agent details
-- `POST /api/agents` - Create new agent
-- `PUT /api/agents/:id` - Update agent
-- `DELETE /api/agents/:id` - Delete agent
-
-### Listings
-- `GET /api/listings` - List all listings
-- `GET /api/listings/:id` - Get listing details
-- `POST /api/listings` - Create new listing
-- `PUT /api/listings/:id` - Update listing
-- `DELETE /api/listings/:id` - Delete listing
-
-### Purchases
-- `POST /api/purchases` - Create purchase
-- `GET /api/purchases` - List user's purchases
-- `GET /api/purchases/:id` - Get purchase details
 
 ## Development
 
