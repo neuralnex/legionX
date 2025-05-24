@@ -16,9 +16,7 @@ export class PurchaseController {
 
   constructor() {
     config(); // Load environment variables
-    this.lucidService = new LucidService(
-      process.env.BLOCKFROST_API_KEY || ''
-    );
+    this.lucidService = new LucidService();
   }
 
   async createPurchase(req: Request, res: Response) {
