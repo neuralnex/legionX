@@ -16,6 +16,16 @@ export class DBSyncService {
     this.pool = new Pool(config);
   }
 
+  async initialize(): Promise<void> {
+    try {
+      // Test the connection
+      const client = await this.pool.connect();
+      client.release();
+    } catch (error) {
+      throw new Error(`Failed to initialize DBSync connection: ${error}`);
+    }
+  }
+
   async getLatestBlock(): Promise<number> {
     const result = await this.pool.query(
       'SELECT MAX(block_no) as latest_block FROM block'

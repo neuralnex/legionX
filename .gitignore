@@ -8,3 +8,6 @@ build/
 node_modules/
 .env
 scripts/
+db.dump
+legionx_db.sql
+legionx_db.dump

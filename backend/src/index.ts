@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { AppDataSource } from './config/database';
+import { dbSyncService } from './config/dbsync';
 
 // Import routes
 import authRoutes from './routes/auth.routes';
@@ -65,8 +66,13 @@ let server: any;
 
 const startServer = async () => {
   try {
+    // Initialize PostgreSQL
     await AppDataSource.initialize();
-    console.log('Database connection established');
+    console.log('PostgreSQL connection established');
+
+    // Initialize DBSync
+    await dbSyncService.initialize();
+    console.log('DBSync connection established');
 
     const PORT = process.env.PORT || 3000;
     server = app.listen(PORT, () => {
@@ -74,9 +80,16 @@ const startServer = async () => {
     });
 
     // Graceful shutdown
-    process.on('SIGTERM', () => {
+    process.on('SIGTERM', async () => {
       console.log('SIGTERM received. Shutting down gracefully...');
-      server.close(() => {
+      server.close(async () => {
+        // Close database connections
+        if (AppDataSource.isInitialized) {
+          await AppDataSource.destroy();
+          console.log('PostgreSQL connection closed');
+        }
+        await dbSyncService.close();
+        console.log('DBSync connection closed');
         console.log('Server closed');
         process.exit(0);
       });
