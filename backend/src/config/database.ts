@@ -68,6 +68,7 @@ export interface UTXO {
 
 export interface TransactionDetails {
   hash: string;
+  block_no: number;
   metadata: {
     [key: string]: {
       msg?: string;

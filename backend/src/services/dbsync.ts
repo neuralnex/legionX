@@ -28,6 +28,7 @@ export class DBSyncService {
       const result = await this.pool.query(
         `SELECT 
           tx.hash,
+          tx.block_no,
           COALESCE(
             jsonb_object_agg(
               key,
@@ -41,7 +42,7 @@ export class DBSyncService {
         FROM tx
         LEFT JOIN tx_metadata ON tx_metadata.tx_id = tx.id
         WHERE tx.hash = $1
-        GROUP BY tx.hash`,
+        GROUP BY tx.hash, tx.block_no`,
         [txHash]
       );
 
@@ -51,6 +52,7 @@ export class DBSyncService {
 
       return {
         hash: result.rows[0].hash,
+        block_no: result.rows[0].block_no,
         metadata: result.rows[0].metadata
       };
     } catch (error) {
