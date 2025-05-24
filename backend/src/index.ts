@@ -57,6 +57,9 @@ app.use('/api/v1/premium', premiumRoutes);
 // Error handling
 app.use(errorHandler);
 
+// Export the Express app
+export default app;
+
 // Initialize database connection
 let server: any;
 
