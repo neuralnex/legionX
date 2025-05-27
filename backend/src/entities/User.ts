@@ -26,6 +26,9 @@ export class User {
   @Column({ nullable: true })
   analyticsExpiry!: Date;
 
+  @Column({ nullable: true })
+  analyticsTxHash?: string;
+
   @OneToMany(() => Listing, listing => listing.seller)
   listings!: Listing[];
 

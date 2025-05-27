@@ -67,6 +67,9 @@ export class Listing {
   @Column({ nullable: true })
   premiumExpiry!: Date;
 
+  @Column({ nullable: true })
+  premiumTxHash?: string;
+
   @Column({ default: false })
   isActive!: boolean;
 

@@ -27,6 +27,9 @@ export class Purchase {
   txHash!: string;
 
   @Column({ nullable: true })
+  feeTxHash?: string;
+
+  @Column({ nullable: true })
   confirmations!: number;
 
   @CreateDateColumn()

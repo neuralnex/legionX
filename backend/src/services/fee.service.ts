@@ -3,11 +3,19 @@ import { Listing } from '../entities/Listing';
 import { Purchase } from '../entities/Purchase';
 import { User } from '../entities/User';
 import { Logger } from '../utils/logger';
+import { LucidService } from './lucid';
 
 export class FeeService {
     private static readonly TRANSACTION_FEE_PERCENTAGE = 0.03; // 3%
-    private static readonly PREMIUM_LISTING_FEE = 0.1; // 0.1 ADA
-    private static readonly ANALYTICS_SUBSCRIPTION_FEE = 1.0; // 1 ADA per month
+    private static readonly PREMIUM_LISTING_FEE = 10.0; // 10 ADA
+    private static readonly ANALYTICS_SUBSCRIPTION_FEE = 3.0; // 3 ADA per month
+    private static readonly TREASURY_WALLET = process.env.TREASURY_WALLET_ADDRESS || 'addr1qx...'; // Replace with actual treasury wallet
+
+    private static lucidService: LucidService;
+
+    static initialize(lucidService: LucidService) {
+        this.lucidService = lucidService;
+    }
 
     /**
      * Calculate transaction fee for a sale
@@ -39,13 +47,18 @@ export class FeeService {
                 throw new Error('Listing or user not found');
             }
 
+            // Process payment to treasury wallet
+            const txHash = await this.lucidService.buildFeeTransaction(
+                this.PREMIUM_LISTING_FEE,
+                this.TREASURY_WALLET,
+                'Premium Listing Fee'
+            );
+
             // Update listing to premium status
             listing.isPremium = true;
             listing.premiumExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+            listing.premiumTxHash = txHash;
             await listingRepo.save(listing);
-
-            // Record premium purchase
-            // TODO: Implement actual payment processing
 
             return true;
         } catch (error) {
@@ -66,17 +79,54 @@ export class FeeService {
                 throw new Error('User not found');
             }
 
+            // Process payment to treasury wallet
+            const txHash = await this.lucidService.buildFeeTransaction(
+                this.ANALYTICS_SUBSCRIPTION_FEE,
+                this.TREASURY_WALLET,
+                'Analytics Subscription Fee'
+            );
+
             // Update user analytics subscription
             user.hasAnalyticsAccess = true;
             user.analyticsExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+            user.analyticsTxHash = txHash;
             await userRepo.save(user);
-
-            // Record subscription purchase
-            // TODO: Implement actual payment processing
 
             return true;
         } catch (error) {
             Logger.error('Error processing analytics subscription:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Process transaction fee
+     */
+    static async processTransactionFee(saleAmount: number, purchaseId: string): Promise<boolean> {
+        try {
+            const purchaseRepo = AppDataSource.getRepository(Purchase);
+            const purchase = await purchaseRepo.findOne({ where: { id: purchaseId } });
+
+            if (!purchase) {
+                throw new Error('Purchase not found');
+            }
+
+            const feeAmount = this.calculateTransactionFee(saleAmount);
+            
+            // Process payment to treasury wallet
+            const txHash = await this.lucidService.buildFeeTransaction(
+                feeAmount,
+                this.TREASURY_WALLET,
+                'Transaction Fee'
+            );
+
+            // Update purchase with fee transaction
+            purchase.feeTxHash = txHash;
+            await purchaseRepo.save(purchase);
+
+            return true;
+        } catch (error) {
+            Logger.error('Error processing transaction fee:', error);
             return false;
         }
     }
