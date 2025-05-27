@@ -36,12 +36,16 @@ export class LucidService {
   private maxRetries: number = 3;
   private retryDelay: number = 2000;
   private logger: Logger;
+  private walletApi: any | null = null;
 
   constructor() {
     this.logger = new Logger('LucidService');
     this.initialize();
   }
 
+  /**
+   * Initialize Lucid with testnet configuration
+   */
   private async initialize() {
     const blockfrostApiKey = process.env.BLOCKFROST_API_KEY;
     if (!blockfrostApiKey) {
@@ -57,7 +61,7 @@ export class LucidService {
     // Get validator addresses using validatorToAddress
     const marketValidator: Script = {
       type: "PlutusV3" as ScriptType,
-      script: "59099301010029800aba2aba1aba0aab9faab9eaab9dab9a488888896600264653001300800198041804800cdc3a400530080024888966002600460106ea800e3300130093754007370e90004dc3a40093008375400891114c004c040012602060220092232598009803000c4c8c966002602c0050048b2026375a602800260206ea800e2b300130090018acc004c040dd5001c00a2c808a2c807100e18071baa0024888c966002600e00b15980098089baa00c800c590124566002601400b15980098089baa00c800c590124566002600c00b1323232332259800980d001c4cc01cc0640104cc01c00801a2c80b8c05c004dd6980b801980b800980b00098089baa00c8acc004cdc3a400c00b15980098089baa00c800c5901245900f201e403c8078566002600c601e6ea800a3300130133010375400523014301530150019180a180a980a980a980a980a980a980a800c88c8cc00400400c896600200314a115980099b8f375c602e00200714a31330020023018001404880aa601e6ea802e46028602a602a602a602a602a00323014301530153015001912cc004c020c044dd500144c8c8c8c8c8ca60026eb8c06c0066eb4c06c01a6eb8c06c0126036007301b00248888966002604200d13300e302000a1332259800980a800c4c8c966002604a0050048b2044375c6046002603e6ea80122b300130180018acc004c07cdd5002400a2c81022c80e901d099807000806180e1baa0028b203c180d800980d000980c800980c000980b80098091baa0028b20209180a180a980a980a980a800c8c050c0540066e952000488888888888c8cc8966002602801513259800980a980f1baa0018acc004cdc398019bab3006301f37546044603e6ea8004dd69811180f9baa00f8acc004c054c078dd51803980f9baa00f8992cc004c058c07cdd5000c4c8c966002602e60426ea8006266016604a60446ea80044c966002603260446ea8006264b300130193023375400313300d302730243754002264b3001301b3024375400313259800980e18129baa330093758602a604c6ea807896600266ebcc0a8c09cdd5181518139baa001300d3302930123027375402e97ae089919800800992cc004c088c0a0dd5000c52f5bded8c113756605860526ea8005027198069bab300f30283754004910102dead002259800800c52844c96600266e44014006266e3c014006266006006605c0048140dd718141816000a0548a50409514a31640906eb8c0a0c094dd5000c59023180718121baa0148b2044301230233754604c60466ea80062c8108cc014dd6180898111baa01a25980099baf302630233754604c60466ea8004c098c08cdd5181318119baa300a3023375400713375e601460466ea8004c028c08cdd5180518119baa0038a504085164080602060426ea8c020c084dd5000981198101baa0018b2044330063758602460466ea806c96600266ebcc09cc090dd5181398121baa001302730243754604e60486ea8c02cc090dd500244cdd7980598121baa001300b30243754601660486ea80122941022181298111baa0018b2040301030213754601060426ea8004c08cc080dd5000c5901e198011bac3022301f375402e466ebcc08cc080dd5000809c5901d45901d198009bac300d301e375402c466ebcc088c07cdd51811180f9baa001300533021300e301f375401e97ae08b20388b20388acc004c04c02a264653001302300198119812000ccc00cdd6181198101baa01823375e604860426ea80040526eb4c08c009222259800980d18119baa00289919192cc004c074c098dd5000c4c966002603a604e6ea8006264660240022b30015980099b8f375c603060526ea8004dd7180c18149baa0198acc004cdc39bad302c3029375400200d15980099baf30103029375400201315980099baf3011302937540020111330163758602e60526ea8084dd7180c18149baa0198a50409d14a0813a29410274528204e8a518b204e302b30283754003164098602c604e6ea8c0a8c09cdd5000c59025198049bac30153026375403c4b30013375e6054604e6ea8c0a8c09cdd500080144cdd7980718139baa001300e30273754601c604e6ea800e2941025181418129baa3028302537546018604a6ea8004c09cc090dd50014590220c08c004c078dd500cc566002660166eb0c030c078dd500b1bae300d301e375401d14a316407080e101c203823259800980b980e9baa0018a40011375a6042603c6ea800501c192cc004c05cc074dd5000c5300103d87a8000899198008009bab3022301f375400444b30010018a6103d87a8000899192cc004cdc8a45000018acc004cdc7a441000018980419812181100125eb82298103d87a80004081133004004302600340806eb8c080004c08c005021203833002001489002232330010010032259800800c530103d87a80008992cc004c0100062600e6604600297ae08998018019812801203e3023001408444646600200200644b30010018a6103d87a8000899192cc004cdc8802800c56600266e3c0140062600e66046604200497ae08a60103d87a8000407d1330040043025003407c6eb8c07c004c08800502022c80708b200e180400098019baa0088a4d1365640041"
+      script: "59099301010029800aba2aba1aba0aab9faab9eaab9dab9a488888896600264653001300800198041804800cdc3a400530080024888966002600460106ea800e3300130093754007370e90004dc3a40093008375400891114c004c040012602060220092232598009803000c4c8c966002602c0050048b2026375a602800260206ea800e2b300130090018acc004c040dd5001c00a2c808a2c807100e18071baa0024888c966002600e00b15980098089baa00c800c590124566002601400b15980098089baa00c800c590124566002600c00b1323232332259800980d001c4cc01cc0640104cc01c00801a2c80b8c05c004dd6980b801980b800980b00098089baa00c8acc004cdc3a400c00b15980098089baa00c800c5901245900f201e403c8078566002600c601e6ea800a3300130133010375400523014301530150019180a180a980a980a980a980a800c88c8cc00400400c896600200314a115980099b8f375c602e00200714a31330020023018001404880aa601e6ea802e46028602a602a602a602a602a00323014301530153015001912cc004c020c044dd500144c8c8c8c8c8ca60026eb8c06c0066eb4c06c01a6eb8c06c0126036007301b00248888966002604200d13300e302000a1332259800980a800c4c8c966002604a0050048b2044375c6046002603e6ea80122b300130180018acc004c07cdd5002400a2c81022c80e901d099807000806180e1baa0028b203c180d800980d000980c800980c000980b80098091baa0028b20209180a180a980a980a980a800c8c050c0540066e952000488888888888c8cc8966002602801513259800980a980f1baa0018acc004cdc398019bab3006301f37546044603e6ea8004dd69811180f9baa00f8acc004c054c078dd51803980f9baa00f8992cc004c058c07cdd5000c4c8c966002602e60426ea8006266016604a60446ea80044c966002603260446ea8006264b300130193023375400313300d302730243754002264b3001301b3024375400313259800980e18129baa330093758602a604c6ea807896600266ebcc0a8c09cdd5181518139baa001300d3302930123027375402e97ae089919800800992cc004c088c0a0dd5000c52f5bded8c113756605860526ea8005027198069bab300f30283754004910102dead002259800800c52844c96600266e44014006266e3c014006266006006605c0048140dd718141816000a0548a50409514a31640906eb8c0a0c094dd5000c59023180718121baa0148b2044301230233754604c60466ea80062c8108cc014dd6180898111baa01a25980099baf302630233754604c60466ea8004c098c08cdd5181318119baa300a3023375400713375e601460466ea8004c028c08cdd5180518119baa0038a504085164080602060426ea8c020c084dd5000981198101baa0018b2044330063758602460466ea806c96600266ebcc09cc090dd5181398121baa001302730243754604e60486ea8c02cc090dd500244cdd7980598121baa001300b30243754601660486ea80122941022181298111baa0018b2040301030213754601060426ea8004c08cc080dd5000c5901e198011bac3022301f375402e466ebcc08cc080dd5000809c5901d45901d198009bac300d301e375402c466ebcc088c07cdd51811180f9baa001300533021300e301f375401e97ae08b20388b20388acc004c04c02a264653001302300198119812000ccc00cdd6181198101baa01823375e604860426ea80040526eb4c08c009222259800980d18119baa00289919192cc004c074c098dd5000c4c966002603a604e6ea8006264660240022b30015980099b8f375c603060526ea8004dd7180c18149baa0198acc004cdc39bad302c3029375400200d15980099baf30103029375400201315980099baf3011302937540020111330163758602e60526ea8084dd7180c18149baa0198a50409d14a0813a29410274528204e8a518b204e302b30283754003164098602c604e6ea8c0a8c09cdd5000c59025198049bac30153026375403c4b30013375e6054604e6ea8c0a8c09cdd500080144cdd7980718139baa001300e30273754601c604e6ea800e2941025181418129baa3028302537546018604a6ea8004c09cc090dd50014590220c08c004c078dd500cc566002660166eb0c030c078dd500b1bae300d301e375401d14a316407080e101c203823259800980b980e9baa0018a40011375a6042603c6ea800501c192cc004c05cc074dd5000c5300103d87a8000899198008009bab3022301f375400444b30010018a6103d87a8000899192cc004cdc8a45000018acc004cdc7a441000018980419812181100125eb82298103d87a80004081133004004302600340806eb8c080004c08c005021203833002001489002232330010010032259800800c530103d87a80008992cc004c0100062600e6604600297ae08998018019812801203e3023001408444646600200200644b30010018a6103d87a8000899192cc004cdc8802800c56600266e3c0140062600e66046604200497ae08a60103d87a8000407d1330040043025003407c6eb8c07c004c08800502022c80708b200e180400098019baa0088a4d1365640041"
     };
 
     const oracleValidator: Script = {
@@ -67,6 +71,19 @@ export class LucidService {
 
     this.marketValidatorAddress = validatorToAddress("Preprod", marketValidator);
     this.oracleValidatorAddress = validatorToAddress("Preprod", oracleValidator);
+  }
+
+  /**
+   * Set the wallet API for transaction signing
+   */
+  setWalletApi(walletApi: any): void {
+    this.walletApi = walletApi;
+    if (this.walletApi) {
+      this.lucid.selectWallet.fromAPI(this.walletApi);
+      this.logger.info('Wallet API set for transaction signing');
+    } else {
+      this.logger.warn('No wallet API provided');
+    }
   }
 
   private async retry<T>(operation: () => Promise<T>): Promise<T> {
@@ -159,6 +176,62 @@ export class LucidService {
     return await signedTx.submit();
   }
 
+  /**
+   * Calculate total fees for a transaction
+   */
+  private async calculateTotalFees(
+    amount: number,
+    platformFeePercentage: number = 0.03 // 3% platform fee
+  ): Promise<{ networkFee: bigint, platformFee: bigint }> {
+    // Calculate platform fee
+    const platformFee = BigInt(Math.floor(amount * platformFeePercentage * 1000000)); // Convert to Lovelace
+
+    // Draft transaction to calculate network fee
+    const draftTx = await this.lucid
+      .newTx()
+      .pay.ToAddress(this.marketValidatorAddress, {
+        lovelace: BigInt(amount * 1000000) + platformFee
+      })
+      .complete();
+
+    // Get network fee
+    const networkFee = await draftTx.toTransaction().body().fee();
+
+    return { networkFee, platformFee };
+  }
+
+  /**
+   * Build and submit a fee transaction with all fees included
+   */
+  async buildFeeTransaction(
+    amount: number,
+    treasuryAddress: string,
+    description: string,
+    platformFeePercentage: number = 0.03
+  ): Promise<string> {
+    // Calculate all fees
+    const { networkFee, platformFee } = await this.calculateTotalFees(amount, platformFeePercentage);
+    const totalAmount = BigInt(amount * 1000000) + platformFee;
+
+    // Build the final transaction with all fees included
+    const tx = await this.lucid
+      .newTx()
+      .attachMetadata(674, {
+        msg: ['FeePayment'],
+        description: description,
+        amount: amount.toString(),
+        platformFee: platformFee.toString(),
+        networkFee: networkFee.toString()
+      })
+      .pay.ToAddress(treasuryAddress, {
+        lovelace: totalAmount
+      })
+      .complete();
+
+    const signedTx = await tx.sign.withWallet().complete();
+    return await signedTx.submit();
+  }
+
   async createListing(
     assetUtxo: UTxO,
     listingId: string,
@@ -175,6 +248,7 @@ export class LucidService {
       modelMetadata
     };
 
+    // First, create the listing on-chain (user pays network fee)
     const tx = await this.lucid
       .newTx()
       .collectFrom([assetUtxo])
@@ -271,6 +345,10 @@ export class LucidService {
     const price = listingUtxo.datum.full_price || listingUtxo.datum.price;
     const adaPrice = (price * exchangeRate) / BigInt(1000000); // Convert to ADA
 
+    // Calculate transaction fee (3%)
+    const transactionFee = (adaPrice * BigInt(3)) / BigInt(100);
+
+    // Build transaction with both payment and fee
     const tx = await this.lucid
       .newTx()
       .collectFrom([{
@@ -280,10 +358,14 @@ export class LucidService {
       .collectFrom(buyerUtxos)
       .attachMetadata(674, {
         msg: ['MBuy', listingUtxo.datum.listingId],
-        price: price.toString()
+        price: price.toString(),
+        transactionFee: transactionFee.toString()
       })
       .pay.ToAddress(sellerAddress, {
-        lovelace: adaPrice
+        lovelace: adaPrice - transactionFee // Seller gets price minus fee
+      })
+      .pay.ToAddress(this.marketValidatorAddress, {
+        lovelace: transactionFee // Platform fee goes to market validator
       })
       .complete();
 
@@ -292,26 +374,106 @@ export class LucidService {
   }
 
   /**
-   * Build and submit a fee transaction
+   * Estimate network fee for a transaction
    */
-  async buildFeeTransaction(
-    amount: number,
-    treasuryAddress: string,
-    description: string
-  ): Promise<string> {
-    const tx = await this.lucid
-      .newTx()
-      .attachMetadata(674, {
-        msg: ['FeePayment'],
-        description: description,
-        amount: amount.toString()
-      })
-      .pay.ToAddress(treasuryAddress, {
-        lovelace: BigInt(amount * 1000000) // Convert ADA to Lovelace
-      })
-      .complete();
-
-    const signedTx = await tx.sign.withWallet().complete();
-    return await signedTx.submit();
+  async estimateNetworkFee(tx: any): Promise<bigint> {
+    try {
+      const fee = await tx.fee();
+      return fee;
+    } catch (error) {
+      this.logger.error('Error estimating network fee:', error);
+      throw new Error('Failed to estimate network fee');
+    }
   }
+
+  /**
+   * Connect a testnet wallet using a private key
+   */
+  async connectTestnetWallet(privateKey: string): Promise<void> {
+    try {
+      this.lucid.selectWallet.fromPrivateKey(privateKey);
+      const address = await this.lucid.wallet().address();
+      this.logger.info(`Testnet wallet connected: ${address}`);
+    } catch (error) {
+      this.logger.error('Error connecting testnet wallet:', error);
+      throw new Error('Failed to connect testnet wallet');
+    }
+  }
+
+  /**
+   * Connect Eternl wallet as fee payer
+   */
+  async connectEternlFeePayer(): Promise<void> {
+    try {
+      // Check if Eternl is available
+      if (!window.cardano?.eternl) {
+        throw new Error('Eternl wallet not found. Please install Eternl wallet extension.');
+      }
+
+      // Enable the wallet
+      const walletApi = await window.cardano.eternl.enable();
+      
+      // Connect the wallet to Lucid for fee payments
+      this.lucid.selectWallet.fromAPI(walletApi);
+      
+      // Get the connected address
+      const address = await this.lucid.wallet().address();
+      this.logger.info(`Eternl wallet connected as fee payer: ${address}`);
+    } catch (error) {
+      this.logger.error('Error connecting Eternl fee payer:', error);
+      throw new Error('Failed to connect Eternl fee payer');
+    }
+  }
+
+  /**
+   * Connect a wallet to the Lucid instance
+   */
+  async connectWallet(walletAddress: string): Promise<void> {
+    try {
+      const utxos = await this.lucid.utxosAt(walletAddress);
+      this.lucid.selectWallet.fromAddress(walletAddress, utxos);
+      this.logger.info(`Wallet connected: ${walletAddress}`);
+    } catch (error) {
+      this.logger.error('Error connecting wallet:', error);
+      throw new Error('Failed to connect wallet');
+    }
+  }
+
+  /**
+   * Connect a user's wallet for transaction signing
+   */
+  async connectUserWallet(walletAddress: string, utxos: UTxO[]): Promise<void> {
+    try {
+      // Connect using the provided address and UTxOs
+      this.lucid.selectWallet.fromAddress(walletAddress, utxos);
+      this.logger.info(`User wallet connected: ${walletAddress}`);
+    } catch (error) {
+      this.logger.error('Error connecting user wallet:', error);
+      throw new Error('Failed to connect user wallet');
+    }
+  }
+
+  /**
+   * Sign a transaction with the connected user wallet
+   */
+  async signTransaction(tx: any): Promise<string> {
+    try {
+      const signedTx = await tx.sign.withWallet().complete();
+      return await signedTx.submit();
+    } catch (error) {
+      this.logger.error('Error signing transaction:', error);
+      throw new Error('Failed to sign transaction');
+    }
+  }
+
+  // Comment out treasury wallet methods for now
+  /*
+  async initializeTreasuryWalletFromSeed(): Promise<void> {
+    // ... existing code ...
+  }
+
+  async initializeTreasuryWalletFromJson(): Promise<void> {
+    // ... existing code ...
+  }
+  */
 } 

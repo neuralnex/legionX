@@ -1,11 +1,14 @@
 import 'reflect-metadata';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
+import { config } from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { AppDataSource } from './config/database';
 import { dbSyncService } from './config/dbsync';
+import { LucidService } from './services/lucid';
+import { FeeService } from './services/fee.service';
+import { Logger } from './utils/logger';
 
 // Import routes
 import authRoutes from './routes/auth.routes';
@@ -19,10 +22,11 @@ import { errorHandler } from './middleware/error.middleware';
 import { requestLogger } from './middleware/logger.middleware';
 
 // Load environment variables
-dotenv.config();
+config();
 
-// Initialize Express app
 const app = express();
+const logger = new Logger('Index');
+const lucidService = new LucidService();
 
 // Security middleware
 app.use(helmet());
@@ -58,47 +62,47 @@ app.use('/api/v1/premium', premiumRoutes);
 // Error handling
 app.use(errorHandler);
 
-// Export the Express app
-export default app;
-
-// Initialize database connection
-let server: any;
-
-const startServer = async () => {
+async function initializeApp() {
   try {
-    // Initialize PostgreSQL
+    // Initialize database connection
     await AppDataSource.initialize();
-    console.log('PostgreSQL connection established');
+    logger.info('Database connection initialized');
 
+    // Initialize fee service with lucid service
+    FeeService.initialize(lucidService);
+    logger.info('Fee service initialized');
+    
     // Initialize DBSync
     await dbSyncService.initialize();
-    console.log('DBSync connection established');
-
+    logger.info('DBSync connection established');
+    
+    // Start express server
     const PORT = process.env.PORT || 3000;
-    server = app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+    app.listen(PORT, () => {
+      logger.info(`Server running on port ${PORT}`);
     });
 
     // Graceful shutdown
     process.on('SIGTERM', async () => {
-      console.log('SIGTERM received. Shutting down gracefully...');
-      server.close(async () => {
-        // Close database connections
-        if (AppDataSource.isInitialized) {
-          await AppDataSource.destroy();
-          console.log('PostgreSQL connection closed');
-        }
-        await dbSyncService.close();
-        console.log('DBSync connection closed');
-        console.log('Server closed');
-        process.exit(0);
-      });
+      logger.info('SIGTERM received. Shutting down gracefully...');
+      await AppDataSource.destroy();
+      await dbSyncService.close();
+      logger.info('DBSync connection closed');
+      logger.info('Server closed');
+      process.exit(0);
+    });
+
+    process.on('SIGINT', async () => {
+      logger.info('SIGINT received. Shutting down gracefully...');
+      await AppDataSource.destroy();
+      process.exit(0);
     });
 
   } catch (error) {
-    console.error('Error starting server:', error);
+    logger.error('Error initializing app:', error);
     process.exit(1);
   }
-};
+}
 
-startServer(); 
+// Start the application
+initializeApp(); 

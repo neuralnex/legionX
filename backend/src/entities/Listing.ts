@@ -73,6 +73,9 @@ export class Listing {
   @Column({ default: false })
   isActive!: boolean;
 
+  @Column({ nullable: true })
+  listingFeeTxHash?: string;
+
   @CreateDateColumn()
   createdAt!: Date;
 

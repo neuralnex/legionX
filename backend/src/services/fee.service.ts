@@ -6,15 +6,46 @@ import { Logger } from '../utils/logger';
 import { LucidService } from './lucid';
 
 export class FeeService {
+    private static readonly LISTING_FEE = 1.5; // 1.5 ADA
     private static readonly TRANSACTION_FEE_PERCENTAGE = 0.03; // 3%
     private static readonly PREMIUM_LISTING_FEE = 10.0; // 10 ADA
-    private static readonly ANALYTICS_SUBSCRIPTION_FEE = 3.0; // 3 ADA per month
+    private static readonly ANALYTICS_SUBSCRIPTION_FEE = 3.0; // 3 ADA
     private static readonly TREASURY_WALLET = process.env.TREASURY_WALLET_ADDRESS || 'addr1qx...'; // Replace with actual treasury wallet
 
     private static lucidService: LucidService;
 
     static initialize(lucidService: LucidService) {
         this.lucidService = lucidService;
+    }
+
+    /**
+     * Process listing fee payment
+     */
+    static async processListingFee(listingId: string, userId: number): Promise<boolean> {
+        try {
+            const listingRepo = AppDataSource.getRepository(Listing);
+            const listing = await listingRepo.findOne({ where: { id: listingId } });
+
+            if (!listing) {
+                throw new Error('Listing not found');
+            }
+
+            // Process listing fee payment to treasury wallet
+            const txHash = await this.lucidService.buildFeeTransaction(
+                this.LISTING_FEE,
+                this.TREASURY_WALLET,
+                'Listing Fee'
+            );
+
+            // Update listing with fee transaction
+            listing.listingFeeTxHash = txHash;
+            await listingRepo.save(listing);
+
+            return true;
+        } catch (error) {
+            Logger.error('Error processing listing fee:', error);
+            return false;
+        }
     }
 
     /**
@@ -30,6 +61,38 @@ export class FeeService {
     static calculateFinalAmount(saleAmount: number): number {
         const fee = this.calculateTransactionFee(saleAmount);
         return saleAmount - fee;
+    }
+
+    /**
+     * Process transaction fee
+     */
+    static async processTransactionFee(saleAmount: number, purchaseId: string): Promise<boolean> {
+        try {
+            const purchaseRepo = AppDataSource.getRepository(Purchase);
+            const purchase = await purchaseRepo.findOne({ where: { id: purchaseId } });
+
+            if (!purchase) {
+                throw new Error('Purchase not found');
+            }
+
+            const feeAmount = this.calculateTransactionFee(saleAmount);
+            
+            // Process payment to treasury wallet
+            const txHash = await this.lucidService.buildFeeTransaction(
+                feeAmount,
+                this.TREASURY_WALLET,
+                'Transaction Fee'
+            );
+
+            // Update purchase with fee transaction
+            purchase.feeTxHash = txHash;
+            await purchaseRepo.save(purchase);
+
+            return true;
+        } catch (error) {
+            Logger.error('Error processing transaction fee:', error);
+            return false;
+        }
     }
 
     /**
@@ -95,38 +158,6 @@ export class FeeService {
             return true;
         } catch (error) {
             Logger.error('Error processing analytics subscription:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Process transaction fee
-     */
-    static async processTransactionFee(saleAmount: number, purchaseId: string): Promise<boolean> {
-        try {
-            const purchaseRepo = AppDataSource.getRepository(Purchase);
-            const purchase = await purchaseRepo.findOne({ where: { id: purchaseId } });
-
-            if (!purchase) {
-                throw new Error('Purchase not found');
-            }
-
-            const feeAmount = this.calculateTransactionFee(saleAmount);
-            
-            // Process payment to treasury wallet
-            const txHash = await this.lucidService.buildFeeTransaction(
-                feeAmount,
-                this.TREASURY_WALLET,
-                'Transaction Fee'
-            );
-
-            // Update purchase with fee transaction
-            purchase.feeTxHash = txHash;
-            await purchaseRepo.save(purchase);
-
-            return true;
-        } catch (error) {
-            Logger.error('Error processing transaction fee:', error);
             return false;
         }
     }
