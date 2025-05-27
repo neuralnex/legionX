@@ -426,16 +426,13 @@ export class LucidService {
    */
   async connectEternlFeePayer(): Promise<void> {
     try {
-      // Check if Eternl is available
-      if (!window.cardano?.eternl) {
-        throw new Error('Eternl wallet not found. Please install Eternl wallet extension.');
+      // In a backend environment, we need to receive the wallet API from the frontend
+      if (!this.walletApi) {
+        throw new Error('No wallet API provided. Please set the wallet API first using setWalletApi()');
       }
 
-      // Enable the wallet
-      const walletApi = await window.cardano.eternl.enable();
-      
       // Connect the wallet to Lucid for fee payments
-      this.lucid.selectWallet.fromAPI(walletApi);
+      this.lucid.selectWallet.fromAPI(this.walletApi);
       
       // Get the connected address
       const address = await this.lucid.wallet().address();
