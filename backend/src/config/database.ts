@@ -42,6 +42,9 @@ export const AppDataSource = new DataSource({
   logging: process.env.NODE_ENV === 'development',
   migrations: ['src/migrations/*.ts'],
   migrationsRun: true,
+  ssl: {
+    rejectUnauthorized: false // Required for Render
+  }
 });
 
 // DBSync service for blockchain data
