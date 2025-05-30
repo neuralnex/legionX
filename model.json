@@ -1,0 +1,25 @@
+{
+  "name": "AI Agent Model",
+  "description": "A powerful AI agent model for the LegionX marketplace",
+  "modelVersion": "1.0.0",
+  "framework": "tensorflow",
+  "inputFormat": "text",
+  "outputFormat": "text",
+  "accessPoint": {
+    "type": "custom",
+    "endpoint": "http://localhost:8000"
+  },
+  "requirements": {
+    "minMemory": 4,
+    "minGPU": false,
+    "minCPUCores": 2
+  },
+  "pricing": {
+    "perRequest": 0.001,
+    "perHour": 0.1,
+    "perMonth": 10
+  },
+  "tags": ["llm", "text", "ai-agent"],
+  "createdAt": "2024-03-19T00:00:00.000Z",
+  "updatedAt": "2024-03-19T00:00:00.000Z"
+} 
