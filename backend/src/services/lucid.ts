@@ -4,6 +4,7 @@ import {
   UTxO, 
   Script,
 } from '@lucid-evolution/lucid';
+import { Provider } from '@lucid-evolution/lucid/dist';
 import { Logger } from '../utils/logger';
 import { AIModelMetadata } from '../types/model';
 import dotenv from 'dotenv';
@@ -31,7 +32,7 @@ if (!blockfrostApiKey) {
 const blockFrostProvider = () => new Blockfrost("https://cardano-preprod.blockfrost.io/api/v0", blockfrostApiKey);
 
 async function initializeLucid() {
-        const lucid = await Lucid(
+        const lucid = await Lucid.new(
                 new Blockfrost(
                         "https://cardano-preprod.blockfrost.io/api/v0",
                         process.env.BLOCKFROST_API_KEY || ''
@@ -71,7 +72,7 @@ interface ListingUTxO extends Omit<UTxO, 'datum'> {
 }
 
 export class LucidService {
-        private lucid!: Awaited<ReturnType<typeof Lucid>>;
+        private lucid!: Awaited<ReturnType<typeof Lucid.new>>;
         private marketValidatorAddress!: string;
         private oracleValidatorAddress!: string;
   private maxRetries: number = 3;
@@ -87,7 +88,7 @@ export class LucidService {
   private async initializeLucid() {
     try {
       // Initialize Lucid with Blockfrost provider
-      this.lucid = await Lucid(
+      this.lucid = await Lucid.new(
         new Blockfrost(
                                         "https://cardano-preprod.blockfrost.io/api/v0",
           process.env.BLOCKFROST_API_KEY || ''

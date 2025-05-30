@@ -57,35 +57,111 @@ PINATA_GATEWAY=https://gateway.pinata.cloud/ipfs/
 
 #### Register User
 ```http
-POST /auth/register
+POST /api/v1/auth/register
 Content-Type: application/json
 
 {
   "email": "user@example.com",
-  "password": "securepassword",
   "wallet": "addr_test..."
 }
 ```
 
-#### Login
+Response:
+```json
+{
+  "message": "User registered successfully",
+  "token": "your.jwt.token",
+  "user": {
+    "id": "user_id",
+    "email": "user@example.com",
+    "wallet": "addr_test..."
+  }
+}
+```
+
+#### Login with Wallet
 ```http
-POST /auth/login
+POST /api/v1/auth/login/wallet
 Content-Type: application/json
 
 {
-  "email": "user@example.com",
-  "password": "securepassword"
+  "wallet": "addr_test...",
+  "signature": "signed_message"
+}
+```
+
+Response:
+```json
+{
+  "message": "Login successful",
+  "token": "your.jwt.token",
+  "user": {
+    "id": "user_id",
+    "email": "user@example.com",
+    "wallet": "addr_test..."
+  }
 }
 ```
 
 #### Link Wallet
 ```http
-POST /auth/link-wallet
-Authorization: Bearer <token>
+POST /api/v1/auth/link-wallet
 Content-Type: application/json
 
 {
+  "email": "user@example.com",
   "wallet": "addr_test..."
+}
+```
+
+Response:
+```json
+{
+  "message": "Wallet linked successfully",
+  "token": "your.jwt.token",
+  "user": {
+    "id": "user_id",
+    "email": "user@example.com",
+    "wallet": "addr_test..."
+  }
+}
+```
+
+#### Verify Token
+```http
+GET /api/v1/auth/verify
+Authorization: Bearer <your_jwt_token>
+```
+
+Response:
+```json
+{
+  "message": "Token is valid",
+  "user": {
+    "sub": "user_id",
+    "email": "user@example.com",
+    "wallet": "addr_test..."
+  }
+}
+```
+
+#### Get Profile
+```http
+GET /api/v1/auth/profile
+Authorization: Bearer <your_jwt_token>
+```
+
+Response:
+```json
+{
+  "user": {
+    "id": "user_id",
+    "email": "user@example.com",
+    "wallet": "addr_test...",
+    "username": "user",
+    "createdAt": "2024-03-14T12:00:00Z",
+    "updatedAt": "2024-03-14T12:00:00Z"
+  }
 }
 ```
 
@@ -93,17 +169,17 @@ Content-Type: application/json
 
 #### Get All Listings
 ```http
-GET /listings
+GET /api/v1/listings
 ```
 
 #### Get Listing by ID
 ```http
-GET /listings/:id
+GET /api/v1/listings/:id
 ```
 
 #### Create Listing
 ```http
-POST /listings
+POST /api/v1/listings
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -121,7 +197,7 @@ Content-Type: application/json
 
 #### Update Listing
 ```http
-PUT /listings/:id
+PUT /api/v1/listings/:id
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -133,7 +209,7 @@ Content-Type: application/json
 
 #### Delete Listing
 ```http
-DELETE /listings/:id
+DELETE /api/v1/listings/:id
 Authorization: Bearer <token>
 ```
 
@@ -141,19 +217,19 @@ Authorization: Bearer <token>
 
 #### Get User Purchases
 ```http
-GET /purchases
+GET /api/v1/purchases
 Authorization: Bearer <token>
 ```
 
 #### Get Purchase by ID
 ```http
-GET /purchases/:id
+GET /api/v1/purchases/:id
 Authorization: Bearer <token>
 ```
 
 #### Create Purchase
 ```http
-POST /purchases
+POST /api/v1/purchases
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -167,23 +243,23 @@ Content-Type: application/json
 
 #### Get Premium Features
 ```http
-GET /premium/features
+GET /api/v1/premium/features
 ```
 
 #### Get Analytics Features
 ```http
-GET /premium/analytics/features
+GET /api/v1/premium/analytics/features
 ```
 
 #### Purchase Premium Listing
 ```http
-POST /premium/listing/:listingId
+POST /api/v1/premium/listing/:listingId
 Authorization: Bearer <token>
 ```
 
 #### Purchase Analytics Subscription
 ```http
-POST /premium/analytics/subscribe
+POST /api/v1/premium/analytics/subscribe
 Authorization: Bearer <token>
 ```
 

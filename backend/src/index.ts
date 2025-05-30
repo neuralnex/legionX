@@ -6,8 +6,8 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { AppDataSource } from './config/database';
 import { dbSyncService } from './config/dbsync';
-// import { LucidService } from './services/lucid';
-// import { FeeService } from './services/fee.service';
+import { LucidService } from './services/lucid';
+import { FeeService } from './services/fee.service';
 import { Logger } from './utils/logger';
 
 // Import routes
