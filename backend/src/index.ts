@@ -6,8 +6,8 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { AppDataSource } from './config/database';
 import { dbSyncService } from './config/dbsync';
-import { LucidService } from './services/lucid';
-import { FeeService } from './services/fee.service';
+// import { LucidService } from './services/lucid';
+// import { FeeService } from './services/fee.service';
 import { Logger } from './utils/logger';
 
 // Import routes
@@ -28,7 +28,7 @@ config();
 
 const app = express();
 const logger = new Logger('Index');
-const lucidService = new LucidService();
+// const lucidService = new LucidService();
 
 // Security middleware
 app.use(helmet());
@@ -77,10 +77,6 @@ async function initializeApp() {
     await AppDataSource.initialize();
     logger.info('Database connection initialized');
 
-    // Initialize fee service with lucid service
-    FeeService.initialize(lucidService);
-    logger.info('Fee service initialized');
-    
     // Initialize DBSync
     await dbSyncService.initialize();
     logger.info('DBSync connection established');

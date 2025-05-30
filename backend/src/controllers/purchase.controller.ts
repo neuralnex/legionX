@@ -4,7 +4,7 @@ import { Purchase } from '../entities/Purchase';
 import { Listing } from '../entities/Listing';
 import { User } from '../entities/User';
 import { AppError } from '../middleware/error.middleware';
-import { LucidService } from '../services/lucid';
+// import { LucidService } from '../services/lucid';
 import { config } from 'dotenv';
 
 const purchaseRepository = AppDataSource.getRepository(Purchase);
@@ -12,11 +12,11 @@ const listingRepository = AppDataSource.getRepository(Listing);
 const userRepository = AppDataSource.getRepository(User);
 
 export class PurchaseController {
-  private lucidService: LucidService;
+  // private lucidService: LucidService;
 
   constructor() {
     config(); // Load environment variables
-    this.lucidService = new LucidService();
+    // this.lucidService = new LucidService();
   }
 
   async createPurchase(req: Request, res: Response) {

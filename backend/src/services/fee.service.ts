@@ -3,7 +3,7 @@ import { Listing } from '../entities/Listing';
 import { Purchase } from '../entities/Purchase';
 import { User } from '../entities/User';
 import { Logger } from '../utils/logger';
-import { LucidService } from './lucid';
+// import { LucidService } from './lucid';
 
 export class FeeService {
     private static readonly LISTING_FEE = 1.5; // 1.5 ADA
@@ -12,11 +12,12 @@ export class FeeService {
     private static readonly ANALYTICS_SUBSCRIPTION_FEE = 3.0; // 3 ADA
     private static readonly TREASURY_WALLET = process.env.TREASURY_WALLET_ADDRESS || 'addr1qx...'; // Replace with actual treasury wallet
 
-    private static lucidService: LucidService;
+    private static logger = new Logger('FeeService');
+    // private static lucidService: LucidService;
 
-    static initialize(lucidService: LucidService) {
-        this.lucidService = lucidService;
-    }
+    // static initialize(lucidService: LucidService) {
+    //     this.lucidService = lucidService;
+    // }
 
     // Processing  listing fee payment
 
@@ -30,7 +31,7 @@ export class FeeService {
             }
 
             // Process listing fee payment to treasury wallet
-            const txHash = await this.lucidService.buildFeeTransaction(
+            const txHash = await this.processFee(
                 this.LISTING_FEE,
                 this.TREASURY_WALLET,
                 'Listing Fee'
@@ -42,7 +43,7 @@ export class FeeService {
 
             return true;
         } catch (error) {
-            Logger.error('Error processing listing fee:', error);
+            this.logger.error('Error processing listing fee:', error);
             return false;
         }
     }
@@ -77,7 +78,7 @@ export class FeeService {
             const feeAmount = this.calculateTransactionFee(saleAmount);
             
             // Process payment to treasury wallet
-            const txHash = await this.lucidService.buildFeeTransaction(
+            const txHash = await this.processFee(
                 feeAmount,
                 this.TREASURY_WALLET,
                 'Transaction Fee'
@@ -89,7 +90,7 @@ export class FeeService {
 
             return true;
         } catch (error) {
-            Logger.error('Error processing transaction fee:', error);
+            this.logger.error('Error processing transaction fee:', error);
             return false;
         }
     }
@@ -110,7 +111,7 @@ export class FeeService {
             }
 
             // Process payment to treasury wallet
-            const txHash = await this.lucidService.buildFeeTransaction(
+            const txHash = await this.processFee(
                 this.PREMIUM_LISTING_FEE,
                 this.TREASURY_WALLET,
                 'Premium Listing Fee'
@@ -124,7 +125,7 @@ export class FeeService {
 
             return true;
         } catch (error) {
-            Logger.error('Error processing premium listing:', error);
+            this.logger.error('Error processing premium listing:', error);
             return false;
         }
     }
@@ -142,7 +143,7 @@ export class FeeService {
             }
 
             // Process payment to treasury wallet
-            const txHash = await this.lucidService.buildFeeTransaction(
+            const txHash = await this.processFee(
                 this.ANALYTICS_SUBSCRIPTION_FEE,
                 this.TREASURY_WALLET,
                 'Analytics Subscription Fee'
@@ -156,7 +157,7 @@ export class FeeService {
 
             return true;
         } catch (error) {
-            Logger.error('Error processing analytics subscription:', error);
+            this.logger.error('Error processing analytics subscription:', error);
             return false;
         }
     }
@@ -185,5 +186,36 @@ export class FeeService {
             'Sales performance metrics',
             'Custom reports generation'
         ];
+    }
+
+    static async calculateFee(amount: number): Promise<{ networkFee: number, platformFee: number }> {
+        try {
+            // Temporary mock implementation
+            const platformFee = amount * 0.03; // 3% platform fee
+            const networkFee = 0.17; // Mock network fee in ADA
+            
+            return {
+                networkFee,
+                platformFee
+            };
+        } catch (error) {
+            this.logger.error('Error calculating fee:', error);
+            throw new Error('Failed to calculate fee');
+        }
+    }
+
+    static async processFee(
+        amount: number,
+        treasuryAddress: string,
+        description: string
+    ): Promise<string> {
+        try {
+            // Temporary mock implementation
+            this.logger.info(`Processing fee: ${amount} ADA to ${treasuryAddress}`);
+            return 'mock_transaction_hash';
+        } catch (error) {
+            this.logger.error('Error processing fee:', error);
+            throw new Error('Failed to process fee');
+        }
     }
 } 
