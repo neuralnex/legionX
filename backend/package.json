@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node-dev --max-old-space-size=8192 src/index.ts"
+    "dev": "ts-node-dev --max-old-space-size=8192 src/index.ts",
+    "postinstall": "tsc"
   },
   "keywords": [],
   "author": "",
