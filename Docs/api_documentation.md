@@ -1,706 +1,240 @@
 # LegionX API Documentation
 
+## Overview
+
+The LegionX API provides endpoints for managing AI model listings, purchases, and user authentication. The API is built with Express.js and uses TypeORM for database operations.
+
 ## Base URL
-```
-http://localhost:3000/api/v1
-```
 
-## Development Environment
-For local development, the API is available at `http://localhost:3000/api/v1`. Make sure to:
-1. Have the backend server running locally
-2. Set up your environment variables in `.env` file
-3. Configure CORS if needed for local development
-
-## Production URL
-When deployed to production, the API will be available at:
 ```
-https://api.legionx.com/v1
-```
-
-## Health Check
-
-### 1. Check API Status
-```http
-GET /health
-```
-
-**Response:**
-```json
-{
-  "status": "ok"
-}
+https://localhost:3000
 ```
 
 ## Authentication
-All authenticated endpoints require a Bearer token in the Authorization header:
+
+Most endpoints require authentication using a JWT token. Include the token in the Authorization header:
+
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <your_jwt_token>
+```
+
+## Environment Variables
+
+The following environment variables are required for the API to function:
+
+### Database Configuration
+Either use a single `DATABASE_URL`:
+```
+DATABASE_URL=postgresql://user:password@host:port/database
+```
+
+Or individual database parameters:
+```
+DB_HOST=your_db_host
+DB_PORT=5432
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
+DB_NAME=your_db_name
+```
+
+### JWT Configuration
+```
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=24h
+```
+
+### Optional Configuration
+```
+BLOCKFROST_API_KEY=your_blockfrost_api_key
+PINATA_API_KEY=your_pinata_api_key
+PINATA_API_SECRET=your_pinata_api_secret
+PINATA_GATEWAY=https://gateway.pinata.cloud/ipfs/
 ```
 
 ## API Endpoints
 
 ### Authentication
 
-#### 1. Register User
+#### Register User
 ```http
 POST /auth/register
-```
+Content-Type: application/json
 
-**Request Body:**
-```json
 {
   "email": "user@example.com",
-  "wallet": "0x1234...5678"
+  "password": "securepassword",
+  "wallet": "addr_test..."
 }
 ```
 
-**Response:**
-```json
-{
-  "message": "User registered successfully",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "user_123",
-    "email": "user@example.com",
-    "wallet": "0x1234...5678"
-  }
-}
-```
-
-#### 2. Wallet Login
+#### Login
 ```http
-POST /auth/login/wallet
-```
+POST /auth/login
+Content-Type: application/json
 
-**Request Body:**
-```json
 {
-  "wallet": "0x1234...5678"
+  "email": "user@example.com",
+  "password": "securepassword"
 }
 ```
 
-**Response:**
-```json
-{
-  "message": "Login successful",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "user_123",
-    "email": "user@example.com",
-    "wallet": "0x1234...5678"
-  }
-}
-```
-
-#### 3. Link Wallet
+#### Link Wallet
 ```http
 POST /auth/link-wallet
-```
+Authorization: Bearer <token>
+Content-Type: application/json
 
-**Request Body:**
-```json
 {
-  "email": "user@example.com",
-  "wallet": "0x1234...5678"
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Wallet linked successfully",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "user_123",
-    "email": "user@example.com",
-    "wallet": "0x1234...5678"
-  }
-}
-```
-
-#### 4. Verify Token
-```http
-GET /auth/verify
-```
-
-**Response:**
-```json
-{
-  "message": "Token is valid",
-  "user": {
-    "id": "user_123",
-    "email": "user@example.com",
-    "wallet": "0x1234...5678"
-  }
-}
-```
-
-#### 5. Get User Profile
-```http
-GET /auth/profile
-```
-
-**Response:**
-```json
-{
-  "user": {
-    "id": "user_123",
-    "username": "user123",
-    "email": "user@example.com",
-    "wallet": "0x1234...5678",
-    "hasAnalyticsAccess": false,
-    "analyticsExpiry": null,
-    "createdAt": "2024-03-20T10:00:00Z",
-    "updatedAt": "2024-03-20T10:00:00Z"
-  }
+  "wallet": "addr_test..."
 }
 ```
 
 ### Listings
 
-#### 1. Create Listing
-```http
-POST /listings
-```
-
-**Request Body:**
-```json
-{
-  "title": "AI Content Generator",
-  "description": "Advanced AI model for content generation",
-  "price": 99.99,
-  "type": "llm",
-  "features": [
-    "Content generation",
-    "SEO optimization",
-    "Multiple languages"
-  ],
-  "requirements": {
-    "minTokens": 1000,
-    "apiKey": true
-  },
-  "images": ["image1.jpg", "image2.jpg"]
-}
-```
-
-**Response:**
-```json
-{
-  "id": "listing_123",
-  "title": "AI Content Generator",
-  "description": "Advanced AI model for content generation",
-  "price": 99.99,
-  "type": "llm",
-  "features": [
-    "Content generation",
-    "SEO optimization",
-    "Multiple languages"
-  ],
-  "requirements": {
-    "minTokens": 1000,
-    "apiKey": true
-  },
-  "images": ["image1.jpg", "image2.jpg"],
-  "seller": {
-    "id": "user_123",
-    "username": "user123"
-  },
-  "createdAt": "2024-03-20T10:00:00Z",
-  "updatedAt": "2024-03-20T10:00:00Z"
-}
-```
-
-#### 2. Get Listings
+#### Get All Listings
 ```http
 GET /listings
 ```
 
-**Query Parameters:**
-- `page` (number, default: 1)
-- `limit` (number, default: 10)
-- `type` (string, optional)
-- `minPrice` (number, optional)
-- `maxPrice` (number, optional)
-- `search` (string, optional)
+#### Get Listing by ID
+```http
+GET /listings/:id
+```
 
-**Response:**
-```json
+#### Create Listing
+```http
+POST /listings
+Authorization: Bearer <token>
+Content-Type: application/json
+
 {
-  "listings": [
-    {
-      "id": "listing_123",
-      "title": "AI Content Generator",
-      "description": "Advanced AI model for content generation",
-      "price": 99.99,
-      "type": "llm",
-      "images": ["image1.jpg"],
-      "seller": {
-        "id": "user_123",
-        "username": "user123"
-      },
-      "createdAt": "2024-03-20T10:00:00Z"
-    }
-  ],
-  "pagination": {
-    "total": 100,
-    "page": 1,
-    "limit": 10,
-    "pages": 10
+  "title": "AI Model Name",
+  "description": "Model description",
+  "price": 100,
+  "modelMetadata": {
+    "type": "text",
+    "parameters": "7B",
+    "framework": "PyTorch"
   }
 }
+```
+
+#### Update Listing
+```http
+PUT /listings/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "Updated Model Name",
+  "price": 150
+}
+```
+
+#### Delete Listing
+```http
+DELETE /listings/:id
+Authorization: Bearer <token>
 ```
 
 ### Purchases
 
-#### 1. Create Purchase
-```http
-POST /purchases
-```
-
-**Request Body:**
-```json
-{
-  "listingId": "listing_123",
-  "paymentMethod": "wallet"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "purchase_123",
-  "listing": {
-    "id": "listing_123",
-    "title": "AI Content Generator",
-    "price": 99.99
-  },
-  "buyer": {
-    "id": "user_123",
-    "username": "user123"
-  },
-  "status": "pending",
-  "amount": 99.99,
-  "txHash": null,
-  "confirmations": null,
-  "createdAt": "2024-03-20T10:00:00Z",
-  "updatedAt": "2024-03-20T10:00:00Z"
-}
-```
-
-#### 2. Get Purchase
-```http
-GET /purchases/:id
-```
-
-**Response:**
-```json
-{
-  "id": "purchase_123",
-  "listing": {
-    "id": "listing_123",
-    "title": "AI Content Generator",
-    "price": 99.99,
-    "seller": {
-      "id": "user_123",
-      "username": "user123"
-    }
-  },
-  "buyer": {
-    "id": "user_123",
-    "username": "user123"
-  },
-  "status": "completed",
-  "amount": 99.99,
-  "txHash": "0xabc...def",
-  "confirmations": 3,
-  "createdAt": "2024-03-20T10:00:00Z",
-  "updatedAt": "2024-03-20T10:00:00Z"
-}
-```
-
-#### 3. Update Purchase
-```http
-PUT /purchases/:id
-```
-
-**Request Body:**
-```json
-{
-  "status": "completed",
-  "txHash": "0xabc...def",
-  "confirmations": 3
-}
-```
-
-**Response:**
-```json
-{
-  "id": "purchase_123",
-  "status": "completed",
-  "txHash": "0xabc...def",
-  "confirmations": 3,
-  "updatedAt": "2024-03-20T10:00:00Z"
-}
-```
-
-#### 4. List User Purchases
+#### Get User Purchases
 ```http
 GET /purchases
+Authorization: Bearer <token>
 ```
 
-**Query Parameters:**
-- `page` (number, default: 1)
-- `limit` (number, default: 10)
-- `status` (string, optional)
+#### Get Purchase by ID
+```http
+GET /purchases/:id
+Authorization: Bearer <token>
+```
 
-**Response:**
-```json
+#### Create Purchase
+```http
+POST /purchases
+Authorization: Bearer <token>
+Content-Type: application/json
+
 {
-  "purchases": [
-    {
-      "id": "purchase_123",
-      "listing": {
-        "id": "listing_123",
-        "title": "AI Content Generator",
-        "price": 99.99
-      },
-      "status": "completed",
-      "amount": 99.99,
-      "createdAt": "2024-03-20T10:00:00Z"
-    }
-  ],
-  "pagination": {
-    "total": 50,
-    "page": 1,
-    "limit": 10,
-    "pages": 5
-  }
+  "listingId": "listing_id",
+  "amount": 100
 }
 ```
 
 ### Premium Features
 
-#### 1. Get Premium Features
+#### Get Premium Features
 ```http
 GET /premium/features
 ```
 
-**Response:**
-```json
-{
-  "features": [
-    {
-      "id": "feature_1",
-      "name": "Premium Listing",
-      "description": "Enhanced visibility for your listings",
-      "price": 49.99
-    },
-    {
-      "id": "feature_2",
-      "name": "Analytics Access",
-      "description": "Advanced analytics and insights",
-      "price": 29.99
-    }
-  ]
-}
+#### Get Analytics Features
+```http
+GET /premium/analytics/features
 ```
 
-#### 2. Purchase Premium Listing
+#### Purchase Premium Listing
 ```http
 POST /premium/listing/:listingId
+Authorization: Bearer <token>
 ```
 
-**Response:**
-```json
-{
-  "message": "Premium listing purchased successfully"
-}
-```
-
-#### 3. Purchase Analytics Subscription
+#### Purchase Analytics Subscription
 ```http
 POST /premium/analytics/subscribe
+Authorization: Bearer <token>
 ```
 
-**Response:**
-```json
-{
-  "message": "Analytics subscription purchased successfully"
-}
-```
+### IPFS
 
-### Access Control
-
-#### 1. Get Asset Metadata
+#### Upload File
 ```http
-GET /access/metadata/:assetId
+POST /ipfs/upload
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+file: <file>
 ```
 
-**Response:**
-```json
-{
-  "metadata": {
-    "name": "AI Model Access",
-    "description": "Access to premium AI model",
-    "attributes": [
-      {
-        "trait_type": "Access Level",
-        "value": "Premium"
-      }
-    ]
-  }
-}
-```
-
-#### 2. Verify Asset Access
+#### Get Metadata
 ```http
-GET /access/verify/:assetId
+GET /ipfs/metadata/:cid
 ```
 
-**Response:**
-```json
-{
-  "hasAccess": true
-}
-```
+## Error Responses
 
-### Error Responses
+The API uses standard HTTP status codes and returns error messages in the following format:
 
-All endpoints may return the following error responses:
-
-#### Authentication Errors
 ```json
 {
   "error": {
-    "code": "NO_TOKEN",
-    "message": "No token provided"
-  }
-}
-```
-```json
-{
-  "error": {
-    "code": "INVALID_TOKEN",
-    "message": "Invalid or expired token"
-  }
-}
-```
-```json
-{
-  "error": {
-    "code": "USER_NOT_FOUND",
-    "message": "User not found"
-  }
-}
-```
-```json
-{
-  "error": {
-    "code": "PROFILE_FETCH_FAILED",
-    "message": "Failed to get profile"
+    "message": "Error description",
+    "code": "ERROR_CODE"
   }
 }
 ```
 
-#### General Errors
-```json
-{
-  "error": {
-    "code": "BAD_REQUEST",
-    "message": "Invalid input parameters",
-    "details": {
-      "field": "Error message"
-    }
-  }
-}
-```
-```json
-{
-  "error": {
-    "code": "FORBIDDEN",
-    "message": "Insufficient permissions"
-  }
-}
-```
-```json
-{
-  "error": {
-    "code": "NOT_FOUND",
-    "message": "Resource not found"
-  }
-}
-```
-```json
-{
-  "error": {
-    "code": "INTERNAL_ERROR",
-    "message": "An unexpected error occurred"
-  }
-}
-```
+Common error codes:
+- `INVALID_CREDENTIALS`: Authentication failed
+- `UNAUTHORIZED`: Missing or invalid token
+- `NOT_FOUND`: Resource not found
+- `VALIDATION_ERROR`: Invalid request data
+- `DATABASE_ERROR`: Database operation failed
 
 ## Rate Limiting
 
+The API implements rate limiting to prevent abuse. Limits are:
 - 100 requests per minute for authenticated users
 - 20 requests per minute for unauthenticated users
 
-Rate limit headers are included in all responses:
-```
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 99
-X-RateLimit-Reset: 1616234400
-```
+## SSL/TLS
 
-## WebSocket Events
+All API endpoints are served over HTTPS. The API requires SSL for database connections in production.
 
-### Connection
-```javascript
-const ws = new WebSocket('wss://api.legionx.com/v1/ws');
-```
+## Support
 
-### Events
-
-#### 1. Listing Updates
-```json
-{
-  "event": "listing.update",
-  "data": {
-    "id": "listing_123",
-    "price": 89.99,
-    "updatedAt": "2024-03-20T10:00:00Z"
-  }
-}
-```
-
-#### 2. Purchase Status
-```json
-{
-  "event": "purchase.status",
-  "data": {
-    "id": "purchase_123",
-    "status": "completed",
-    "updatedAt": "2024-03-20T10:00:00Z"
-  }
-}
-```
-
-## Testing with Postman
-
-1. Import the following collection into Postman:
-```json
-{
-  "info": {
-    "name": "LegionX API",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "item": [
-    {
-      "name": "Authentication",
-      "item": [
-        {
-          "name": "Register",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/auth/register",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\",\n  \"wallet\": \"0x1234...5678\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Wallet Login",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/auth/login/wallet",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"wallet\": \"0x1234...5678\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        }
-      ]
-    }
-  ]
-}
-```
-
-2. Set up environment variables in Postman:
-   - `baseUrl`: https://api.legionx.com/v1
-   - `token`: Your authentication token
-
-3. Use the collection to test all endpoints with proper authentication and request/response formats.
-
-## SDK Examples
-
-### JavaScript/TypeScript
-```typescript
-import { LegionXClient } from '@legionx/sdk';
-
-const client = new LegionXClient({
-  apiKey: 'your_api_key',
-  baseUrl: 'https://api.legionx.com/v1'
-});
-
-// Register user
-const user = await client.auth.register({
-  email: 'user@example.com',
-  wallet: '0x1234...5678'
-});
-
-// Create a listing
-const listing = await client.listings.create({
-  title: 'AI Content Generator',
-  description: 'Advanced AI model for content generation',
-  price: 99.99,
-  type: 'llm'
-});
-
-// Get listings
-const listings = await client.listings.list({
-  page: 1,
-  limit: 10,
-  type: 'llm'
-});
-```
-
-### Python
-```python
-from legionx import LegionXClient
-
-client = LegionXClient(
-    api_key='your_api_key',
-    base_url='https://api.legionx.com/v1'
-)
-
-# Register user
-user = client.auth.register(
-    email='user@example.com',
-    wallet='0x1234...5678'
-)
-
-# Create a listing
-listing = client.listings.create(
-    title='AI Content Generator',
-    description='Advanced AI model for content generation',
-    price=99.99,
-    type='llm'
-)
-
-# Get listings
-listings = client.listings.list(
-    page=1,
-    limit=10,
-    type='llm'
-)
-``` 
+For API support or to report issues, please contact:
+- Email: support@legionx.io
+- Discord: [LegionX Discord Server] 
