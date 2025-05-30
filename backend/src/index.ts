@@ -31,11 +31,12 @@ const lucidService = new LucidService();
 
 // Security middleware
 app.use(helmet());
-app.use(cors({
-  origin: '*',  // Allow all origins
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors());
+//app.use(cors({
+//  origin: '*',  // Allow all origins
+//  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+//  allowedHeaders: ['Content-Type', 'Authorization']
+//}));
 
 // Rate limiting
 const limiter = rateLimit({
