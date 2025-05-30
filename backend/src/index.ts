@@ -21,6 +21,7 @@ import premiumRoutes from './routes/premium.routes';
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
 import { requestLogger } from './middleware/logger.middleware';
+import { responseWrapper } from './middleware/response.middleware';
 
 // Load environment variables
 config();
@@ -31,12 +32,16 @@ const lucidService = new LucidService();
 
 // Security middleware
 app.use(helmet());
-app.use(cors());
-//app.use(cors({
-//  origin: '*',  // Allow all origins
-//  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-//  allowedHeaders: ['Content-Type', 'Authorization']
-//}));
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://legion-x.vercel.app', 'https://legion-x-yvut.vercel.app'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  exposedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+  maxAge: 86400 // 24 hours
+}));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -48,6 +53,7 @@ app.use(limiter);
 // Basic middleware
 app.use(express.json());
 app.use(requestLogger);
+app.use(responseWrapper);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {

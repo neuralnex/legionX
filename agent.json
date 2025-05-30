@@ -1,0 +1,17 @@
+{
+  "name": "LegionX AI Agent",
+  "description": "A powerful AI agent for the LegionX marketplace",
+  "image": "ipfs://QmYourImageHash",
+  "properties": {
+    "files": [
+      {
+        "name": "model.json",
+        "mediaType": "application/json",
+        "src": "ipfs://QmYourModelHash"
+      }
+    ],
+    "category": "AI Agent",
+    "version": "1.0.0"
+  },
+  "version": "1.0.0"
+} 
