@@ -1,11 +1,11 @@
-import { LucidEvolution } from "@lucid-evolution/lucid";
+import { Lucid } from "@lucid-evolution/lucid";
 import { Logger } from '../utils/logger';
 import { AppDataSource } from '../config/database';
 import { Purchase } from '../entities/Purchase';
 import { Listing } from '../entities/Listing';
 
 export class TransactionMonitorService {
-  private lucid: LucidEvolution;
+  private lucid: Lucid;
   private logger: Logger;
   private purchaseRepository = AppDataSource.getRepository(Purchase);
   private listingRepository = AppDataSource.getRepository(Listing);
@@ -13,7 +13,7 @@ export class TransactionMonitorService {
   private maxConfirmations: number = 20; // ~10 minutes on Cardano
   private isMonitoring: boolean = false;
 
-  constructor(lucid: LucidEvolution) {
+  constructor(lucid: Lucid) {
     this.lucid = lucid;
     this.logger = new Logger('TransactionMonitorService');
   }

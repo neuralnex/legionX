@@ -18,9 +18,8 @@ export class FeeService {
         this.lucidService = lucidService;
     }
 
-    /**
-     * Process listing fee payment
-     */
+    // Processing  listing fee payment
+
     static async processListingFee(listingId: string, userId: number): Promise<boolean> {
         try {
             const listingRepo = AppDataSource.getRepository(Listing);

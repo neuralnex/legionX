@@ -29,7 +29,7 @@ export class PurchaseController {
     });
 
     if (!listing) {
-      throw new AppError('Listing not found', 404);
+      throw new AppError('Listing not found', 404, 'LISTING_NOT_FOUND');
     }
 
     const buyer = await userRepository.findOne({
@@ -37,7 +37,7 @@ export class PurchaseController {
     });
 
     if (!buyer) {
-      throw new AppError('Buyer not found', 404);
+      throw new AppError('Buyer not found', 404, 'BUYER_NOT_FOUND');
     }
 
     const purchase = purchaseRepository.create({
@@ -59,7 +59,7 @@ export class PurchaseController {
     });
 
     if (!purchase) {
-      throw new AppError('Purchase not found', 404);
+      throw new AppError('Purchase not found', 404, 'PURCHASE_NOT_FOUND');
     }
 
     res.json(purchase);
@@ -76,7 +76,7 @@ export class PurchaseController {
     });
 
     if (!purchase) {
-      throw new AppError('Purchase not found', 404);
+      throw new AppError('Purchase not found', 404, 'PURCHASE_NOT_FOUND');
     }
 
     if (status) purchase.status = status;

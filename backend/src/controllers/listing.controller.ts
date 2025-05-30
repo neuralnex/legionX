@@ -16,12 +16,12 @@ export class ListingController {
 
     const seller = await userRepository.findOne({ where: { id: sellerId } });
     if (!seller) {
-      throw new AppError('Seller not found', 404);
+      throw new AppError('Seller not found', 404, 'SELLER_NOT_FOUND');
     }
 
     const agent = await agentRepository.findOne({ where: { id: agentId } });
     if (!agent) {
-      throw new AppError('Agent not found', 404);
+      throw new AppError('Agent not found', 404, 'AGENT_NOT_FOUND');
     }
 
     const listing = listingRepository.create({
@@ -46,7 +46,7 @@ export class ListingController {
     });
 
     if (!listing) {
-      throw new AppError('Listing not found', 404);
+      throw new AppError('Listing not found', 404, 'LISTING_NOT_FOUND');
     }
 
     res.json(listing);
@@ -63,7 +63,7 @@ export class ListingController {
     });
 
     if (!listing) {
-      throw new AppError('Listing not found', 404);
+      throw new AppError('Listing not found', 404, 'LISTING_NOT_FOUND');
     }
 
     if (price) listing.price = BigInt(price);
@@ -84,7 +84,7 @@ export class ListingController {
     });
 
     if (!listing) {
-      throw new AppError('Listing not found', 404);
+      throw new AppError('Listing not found', 404, 'LISTING_NOT_FOUND');
     }
 
     await listingRepository.remove(listing);
