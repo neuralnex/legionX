@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AuthService } from '../services/auth';
 import { RegisterRequest, LinkWalletRequest, AuthError } from '../types/auth';
 import { Logger } from '../utils/logger';
+import { LucidService } from '../services/lucid';
 
 export class AuthController {
   private authService: AuthService;
@@ -63,7 +64,16 @@ export class AuthController {
    */
   static async loginWithWallet(req: Request, res: Response) {
     try {
-      const { wallet } = req.body;
+      const { wallet, signature } = req.body;
+      
+      // Verify wallet ownership
+      const lucidService = new LucidService();
+      const isValid = await lucidService.verifyWalletOwnership(wallet, signature);
+      
+      if (!isValid) {
+        return res.status(401).json({ error: 'Invalid wallet signature' });
+      }
+
       const user = await AuthService.findByWallet(wallet);
       
       if (!user) {
