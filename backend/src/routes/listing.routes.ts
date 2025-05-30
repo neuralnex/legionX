@@ -1,18 +1,34 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { ListingController } from '../controllers/listing.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 
-const router = Router();
-const listingController = new ListingController();
+const router: Router = Router();
 
 // Public routes
-router.get('/', listingController.listListings);
-router.get('/:id', listingController.getListing);
+router.get('/', (req: Request, res: Response) => {
+    const controller = new ListingController();
+    controller.listListings(req, res);
+});
+
+router.get('/:id', (req: Request, res: Response) => {
+    const controller = new ListingController();
+    controller.getListing(req, res);
+});
 
 // Protected routes
-router.use(authMiddleware);
-router.post('/', listingController.createListing);
-router.put('/:id', listingController.updateListing);
-router.delete('/:id', listingController.deleteListing);
+router.post('/', authMiddleware, (req: Request, res: Response) => {
+    const controller = new ListingController();
+    controller.createListing(req, res);
+});
+
+router.put('/:id', authMiddleware, (req: Request, res: Response) => {
+    const controller = new ListingController();
+    controller.updateListing(req, res);
+});
+
+router.delete('/:id', authMiddleware, (req: Request, res: Response) => {
+    const controller = new ListingController();
+    controller.deleteListing(req, res);
+});
 
 export default router; 

@@ -1,8 +1,8 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { PremiumController } from '../controllers/premium.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 
-const router = Router();
+const router: Router = Router();
 
 // Public routes
 router.get('/features', PremiumController.getPremiumFeatures);
