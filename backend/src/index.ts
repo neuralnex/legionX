@@ -16,6 +16,7 @@ import listingRoutes from './routes/listing.routes';
 import purchaseRoutes from './routes/purchase.routes';
 import accessRoutes from './routes/access.routes';
 import premiumRoutes from './routes/premium.routes';
+//import ipfsRoutes from './routes/ipfs.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -31,7 +32,7 @@ const lucidService = new LucidService();
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: '*',  // Allow all origins
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -58,6 +59,7 @@ app.use('/api/v1/listings', listingRoutes);
 app.use('/api/v1/purchases', purchaseRoutes);
 app.use('/api/v1/access', accessRoutes);
 app.use('/api/v1/premium', premiumRoutes);
+//app.use('/api/v1/ipfs', ipfsRoutes);
 
 // Error handling
 app.use(errorHandler);
