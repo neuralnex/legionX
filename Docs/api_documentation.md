@@ -12,6 +12,21 @@ https://localhost:3000
 
 ## Authentication
 
+The authentication system follows a specific flow:
+
+1. **Registration First**: Users must register first using the `/api/v1/auth/register` endpoint, which requires:
+   - Email
+   - Wallet address
+
+2. **Wallet Connection**: After registration, users can:
+   - Login using their wallet via `/api/v1/auth/login/wallet`
+   - Link a wallet to their account via `/api/v1/auth/link-wallet`
+
+This design ensures that:
+- Every user has an email associated with their account
+- Users can have multiple wallets linked to their account
+- The system maintains a clear separation between registration and wallet management
+
 Most endpoints require authentication using a JWT token. Include the token in the Authorization header:
 
 ```
