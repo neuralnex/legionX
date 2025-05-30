@@ -52,7 +52,7 @@ importers:
         specifier: ^20.17.55
         version: 20.17.55
       '@types/pg':
-        specifier: ^8.10.9
+        specifier: ^8.15.1
         version: 8.15.1
       ts-node-dev:
         specifier: ^2.0.0
