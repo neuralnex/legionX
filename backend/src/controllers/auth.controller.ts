@@ -1,15 +1,27 @@
-import { Request, Response } from 'express';
-import { AuthService } from '../services/auth';
-import { RegisterRequest, LinkWalletRequest, AuthError } from '../types/auth';
-import { Logger } from '../utils/logger';
-// import { LucidService } from '../services/lucid';
-import { AppError } from '../middleware/error.middleware';
+import type { Request, Response } from 'express';
+import { AuthService } from '../services/auth.js';
+import type { RegisterRequest, LinkWalletRequest, AuthError } from '../types/auth.js';
+import { Logger } from '../utils/logger.js';
+import { LucidService } from '../services/lucid.js';
+import { AppError } from '../middleware/error.middleware.js';
 
 export class AuthController {
   private authService: AuthService;
+  private lucidService: LucidService | null = null;
+  private logger: Logger;
 
   constructor() {
     this.authService = new AuthService();
+    this.logger = new Logger('AuthController');
+    this.initializeLucid();
+  }
+
+  private async initializeLucid() {
+    try {
+      this.lucidService = await LucidService.getInstance();
+    } catch (error) {
+      this.logger.error('Failed to initialize LucidService:', error);
+    }
   }
 
   /**
@@ -68,9 +80,8 @@ export class AuthController {
       const { wallet, signature } = req.body;
       
       // Verify wallet ownership
-      // const lucidService = new LucidService();
-      // const isValid = await lucidService.verifyWalletOwnership(wallet, signature);
-      const isValid = true; // Temporary bypass
+      const lucidService = await LucidService.getInstance();
+      const isValid = await lucidService.verifyWalletOwnership(wallet);
       
       if (!isValid) {
         return res.status(401).json({ error: 'Invalid wallet signature' });
@@ -157,10 +168,8 @@ export class AuthController {
         );
       }
 
-      // Temporarily disable wallet verification
-      // const lucidService = new LucidService();
-      // const isValid = await lucidService.verifyWalletOwnership(wallet, signature);
-      const isValid = true; // Temporary bypass
+      const lucidService = await LucidService.getInstance();
+      const isValid = await lucidService.verifyWalletOwnership(wallet);
 
       if (!isValid) {
         throw new AppError(

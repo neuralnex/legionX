@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
+import { Logger } from '../utils/logger.js';
 
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();

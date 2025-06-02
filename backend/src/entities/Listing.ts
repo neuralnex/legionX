@@ -1,18 +1,18 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany } from 'typeorm';
-import { User } from './User';
-import { Agent } from './Agent';
-import { Purchase } from './Purchase';
-import { AIModelMetadata } from '../types/model';
+import { User } from './User.js';
+import { Agent } from './Agent.js';
+import type { AIModelMetadata } from '../types/ai.js';
+import { Purchase } from './Purchase.js';
 
 @Entity()
 export class Listing {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @ManyToOne(() => User, user => user.listings)
+  @ManyToOne(() => User, (user: User) => user.listings)
   seller!: User;
 
-  @ManyToOne(() => Agent, agent => agent.listings)
+  @ManyToOne(() => Agent, (agent: Agent) => agent.listings)
   agent!: Agent;
 
   @Column('decimal', { precision: 20, scale: 0 })
@@ -24,19 +24,19 @@ export class Listing {
   @Column('int')
   duration!: number;
 
-  @Column({ nullable: true })
+  @Column('varchar', { nullable: true })
   subscriptionId?: string;
 
   @Column('jsonb')
   modelMetadata!: AIModelMetadata;
 
-  @Column({ nullable: true })
+  @Column('varchar', { nullable: true })
   txHash!: string;
 
-  @Column({ nullable: true })
+  @Column('integer', { nullable: true })
   confirmations!: number;
 
-  @Column()
+  @Column('varchar')
   metadataUri!: string;
 
   @Column({
@@ -46,34 +46,34 @@ export class Listing {
   })
   status!: 'pending' | 'active' | 'sold' | 'cancelled';
 
-  @OneToMany(() => Purchase, purchase => purchase.listing)
+  @OneToMany(() => Purchase, (purchase: Purchase) => purchase.listing)
   purchases!: Purchase[];
 
-  @Column()
+  @Column('varchar')
   title!: string;
 
-  @Column()
+  @Column('text')
   description!: string;
 
-  @Column()
+  @Column('varchar')
   assetId!: string;
 
-  @Column()
+  @Column('varchar')
   ownerAddress!: string;
 
-  @Column({ default: false })
+  @Column('boolean', { default: false })
   isPremium!: boolean;
 
-  @Column({ nullable: true })
+  @Column('timestamp', { nullable: true })
   premiumExpiry!: Date;
 
-  @Column({ nullable: true })
+  @Column('varchar', { nullable: true })
   premiumTxHash?: string;
 
-  @Column({ default: false })
+  @Column('boolean', { default: false })
   isActive!: boolean;
 
-  @Column({ nullable: true })
+  @Column('varchar', { nullable: true })
   listingFeeTxHash?: string;
 
   @CreateDateColumn()

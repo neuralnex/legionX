@@ -1,7 +1,7 @@
-import { PinataSDK, FileObject } from 'pinata-web3';
+import { PinataSDK } from 'pinata';
 import { config } from 'dotenv';
-import { Logger } from '../utils/logger';
-import { ValidationError } from '../types/errors';
+import { Logger } from '../utils/logger.js';
+import { ValidationError } from '../types/errors.js';
 
 config();
 
@@ -34,6 +34,7 @@ export class PinataService {
       throw new Error('PINATA_JWT environment variable is required');
     }
 
+    // Initialize Pinata SDK
     this.pinata = new PinataSDK({
       pinataJwt: process.env.PINATA_JWT,
       pinataGateway: this.gateway
@@ -80,20 +81,21 @@ export class PinataService {
     try {
       this.validateMetadata(metadata);
 
-      const result = await this.pinata.upload.json(metadata);
-      this.logger.info(`Metadata uploaded successfully: ${result.IpfsHash}`);
-      return result.IpfsHash;
+      const result = await this.pinata.upload.public.json(metadata);
+      this.logger.info(`Metadata uploaded successfully: ${result.cid}`);
+      return result.cid;
     } catch (error) {
       this.logger.error('Failed to upload metadata:', error);
       throw error;
     }
   }
 
-  async uploadFile(file: FileObject): Promise<string> {
+  async uploadFile(file: Buffer, fileName: string): Promise<string> {
     try {
-      const result = await this.pinata.upload.file(file);
-      this.logger.info(`File uploaded successfully: ${result.IpfsHash}`);
-      return result.IpfsHash;
+      const fileObj = new File([file], fileName, { type: 'application/octet-stream' });
+      const result = await this.pinata.upload.public.file(fileObj);
+      this.logger.info(`File uploaded successfully: ${result.cid}`);
+      return result.cid;
     } catch (error) {
       this.logger.error('Failed to upload file:', error);
       throw error;
@@ -102,8 +104,7 @@ export class PinataService {
 
   async getMetadata(ipfsHash: string): Promise<NFTMetadata> {
     try {
-      const response = await fetch(`${this.gateway}/ipfs/${ipfsHash}`);
-      const data = await response.json();
+      const data = await this.pinata.gateways.public.get(ipfsHash);
       const metadata = data as NFTMetadata;
       this.validateMetadata(metadata);
       return metadata;
@@ -115,8 +116,8 @@ export class PinataService {
 
   async getFile(ipfsHash: string): Promise<Blob> {
     try {
-      const response = await fetch(`${this.gateway}/ipfs/${ipfsHash}`);
-      return await response.blob();
+      const data = await this.pinata.gateways.public.get(ipfsHash);
+      return new Blob([data]);
     } catch (error) {
       this.logger.error('Failed to retrieve file:', error);
       throw error;
@@ -125,8 +126,8 @@ export class PinataService {
 
   async pinFile(ipfsHash: string): Promise<void> {
     try {
-      // Since we're already uploading through Pinata, the file is automatically pinned
-      this.logger.info(`File is already pinned: ${ipfsHash}`);
+      await this.pinata.pin.add(ipfsHash);
+      this.logger.info(`File pinned successfully: ${ipfsHash}`);
     } catch (error) {
       this.logger.error('Failed to pin file:', error);
       throw error;
@@ -135,8 +136,8 @@ export class PinataService {
 
   async unpinFile(ipfsHash: string): Promise<void> {
     try {
-      // Note: Unpinning is not supported in the current version of the SDK
-      this.logger.warn(`Unpinning is not supported: ${ipfsHash}`);
+      await this.pinata.pin.remove(ipfsHash);
+      this.logger.info(`File unpinned successfully: ${ipfsHash}`);
     } catch (error) {
       this.logger.error('Failed to unpin file:', error);
       throw error;

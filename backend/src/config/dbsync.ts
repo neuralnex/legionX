@@ -1,4 +1,4 @@
-import { DBSyncService } from '../services/dbsync';
+import { DBSyncService } from '../services/dbsync.ts';
 
 // Validate required environment variables
 const requiredEnvVars = {

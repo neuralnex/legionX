@@ -1,6 +1,7 @@
-import { Router, Request, Response } from 'express';
-import { AccessController } from '../controllers/access.controller';
-import { authMiddleware } from '../middleware/auth.middleware';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
+import { AccessController } from '../controllers/access.controller.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
 
 const router: Router = Router();
 const accessController = new AccessController();

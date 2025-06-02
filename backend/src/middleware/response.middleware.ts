@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
+import { Logger } from '../utils/logger.js';
 
 export const responseWrapper = (req: Request, res: Response, next: NextFunction) => {
   // Store original json method

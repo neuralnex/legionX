@@ -1,28 +1,28 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany } from 'typeorm';
-import { User } from './User';
-import { Listing } from './Listing';
+import { User } from './User.js';
+import { Listing } from './Listing.js';
 
 @Entity()
 export class Agent {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
+  @Column('varchar')
   name!: string;
 
   @Column('text')
   description!: string;
 
-  @Column()
+  @Column('varchar')
   modelVersion!: string;
 
-  @Column()
+  @Column('varchar')
   metadataUri!: string;
 
-  @ManyToOne(() => User, user => user.agents)
+  @ManyToOne(() => User, (user: User) => user.agents)
   creator!: User;
 
-  @OneToMany(() => Listing, listing => listing.agent)
+  @OneToMany(() => Listing, (listing: Listing) => listing.agent)
   listings!: Listing[];
 
   @CreateDateColumn()

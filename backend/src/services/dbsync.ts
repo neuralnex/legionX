@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
-import { UTXO, TransactionDetails } from '../config/database';
+import { AppDataSource } from '../config/database.js';
+import type { UTXO, TransactionDetails } from '../types/blockchain.js';
 
 interface DBSyncConfig {
   host: string;
@@ -7,6 +8,10 @@ interface DBSyncConfig {
   database: string;
   user: string;
   password: string;
+}
+
+interface DbRow {
+  [key: string]: any;
 }
 
 export class DBSyncService {
@@ -60,10 +65,14 @@ export class DBSyncService {
         return null;
       }
 
+      const row = result.rows[0];
       return {
-        hash: result.rows[0].hash,
-        block_no: result.rows[0].block_no,
-        metadata: result.rows[0].metadata
+        txHash: row.hash,
+        blockHeight: row.block_no,
+        timestamp: Date.now(), // TODO: Get actual timestamp from block
+        inputs: [], // TODO: Get actual inputs
+        outputs: [], // TODO: Get actual outputs
+        metadata: row.metadata
       };
     } catch (error) {
       console.error('Error fetching transaction details:', error);
@@ -99,8 +108,10 @@ export class DBSyncService {
       );
 
       return result.rows.map(row => ({
-        tx_hash: row.tx_hash,
-        tx_index: row.tx_index,
+        txHash: row.tx_hash,
+        outputIndex: row.tx_index,
+        amount: 0, // TODO: Get actual amount
+        address: address,
         assets: row.assets
       }));
     } catch (error) {

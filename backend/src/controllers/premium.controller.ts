@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import { FeeService } from '../services/fee.service';
-import { Logger } from '../utils/logger';
-import { UserPayload } from '../types/auth';
+import type { Request, Response } from 'express';
+import { FeeService } from '../services/fee.service.js';
+import { Logger } from '../utils/logger.ts';
+import type { UserPayload } from '../types/auth.js';
 
 export class PremiumController {
     /**

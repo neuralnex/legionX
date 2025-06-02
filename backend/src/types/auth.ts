@@ -1,5 +1,5 @@
 export interface UserPayload {
-  sub: number;
+  sub: string;
   email: string;
   wallet?: string;
   iat?: number;
@@ -8,7 +8,7 @@ export interface UserPayload {
 
 export interface RegisterRequest {
   email: string;
-  wallet: string;
+  wallet?: string;
 }
 
 export interface LinkWalletRequest {

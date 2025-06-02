@@ -1,8 +1,8 @@
 import { Lucid } from "@lucid-evolution/lucid";
-import { Logger } from '../utils/logger';
-import { AppDataSource } from '../config/database';
-import { Purchase } from '../entities/Purchase';
-import { Listing } from '../entities/Listing';
+import { Logger } from '../utils/logger.js';
+import { AppDataSource } from '../config/database.js';
+import { Purchase } from '../entities/Purchase.js';
+import { Listing } from '../entities/Listing.js';
 
 export class TransactionMonitorService {
   private lucid: Lucid;
@@ -50,6 +50,7 @@ export class TransactionMonitorService {
 
     for (const purchase of pendingPurchases) {
       try {
+        if (!purchase.txHash) continue;
         const txStatus = await this.checkTransactionStatus(purchase.txHash);
         
         if (txStatus.confirmed) {
@@ -69,6 +70,7 @@ export class TransactionMonitorService {
 
     for (const listing of pendingListings) {
       try {
+        if (!listing.txHash) continue;
         const txStatus = await this.checkTransactionStatus(listing.txHash);
         
         if (txStatus.confirmed) {
@@ -82,7 +84,19 @@ export class TransactionMonitorService {
     }
   }
 
-  private async checkTransactionStatus(txHash: string) {
+  async monitorTransaction(txHash: string | undefined): Promise<void> {
+    if (!txHash) {
+      throw new Error('Transaction hash is required');
+    }
+    const status = await this.checkTransactionStatus(txHash);
+    if (status.confirmed) {
+      this.logger.info(`Transaction ${txHash} confirmed with ${status.confirmations} confirmations`);
+    } else if (status.failed) {
+      this.logger.warn(`Transaction ${txHash} failed`);
+    }
+  }
+
+  private async checkTransactionStatus(txHash: string): Promise<{ confirmed: boolean; failed: boolean; confirmations: number }> {
     try {
       const tx = await this.lucid.utxosAt(txHash);
       

@@ -1,6 +1,6 @@
-import { Logger } from './logger';
-import { NetworkError } from '../types/errors';
-import { DBSyncService } from '../services/dbsync';
+import { Logger } from './logger.ts';
+import { NetworkError } from '../types/errors.ts';
+import { DBSyncService } from '../services/dbsync.ts';
 import { config } from 'dotenv';
 
 config();
@@ -94,7 +94,8 @@ export class TransactionMonitor {
 
       // Get current block height
       const latestBlock = await this.dbSync.getLatestBlock();
-      const confirmations = latestBlock - txDetails.block_no;
+      const blockHeight = txDetails.blockHeight;
+      const confirmations = latestBlock - blockHeight;
       
       return confirmations >= this.maxConfirmations;
     } catch (error) {

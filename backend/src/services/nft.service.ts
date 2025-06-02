@@ -1,5 +1,7 @@
-import { dbSyncService, UTXO, TransactionDetails } from '../config/database';
-import { PinataService, NFTMetadata } from './pinata';
+import { dbSyncService } from '../config/database.js';
+import { PinataService } from './pinata.js';
+import type { UTXO, TransactionDetails } from '../types/blockchain.js';
+import type { NFTMetadata } from '../types/nft.js';
 
 export class NFTService {
   private pinataService: PinataService;
@@ -8,62 +10,37 @@ export class NFTService {
     this.pinataService = new PinataService();
   }
 
-  async getMetadataFromNFT(assetId: string, ownerAddress: string): Promise<NFTMetadata> {
-    try {
-      // 1. Verify ownership using DBSync
-      const utxos = await dbSyncService.getUtxosForAddress(ownerAddress);
-      const hasAsset = utxos.some((utxo: UTXO) => 
-        utxo.assets && utxo.assets[assetId] && utxo.assets[assetId] > 0
-      );
-
-      if (!hasAsset) {
-        throw new Error('User does not own this NFT');
+    async getMetadataFromNFT(utxo: UTXO): Promise<NFTMetadata | null> {
+        try {
+            // Get transaction details
+            const txDetails = await dbSyncService.getTransactionDetails(utxo.txHash);
+            if (!txDetails || !txDetails.metadata) {
+                return null;
       }
 
-      // 2. Get transaction details to find metadata
-      const txDetails = await dbSyncService.getTransactionDetails(utxos[0].tx_hash);
-      if (!txDetails) {
-        throw new Error('Transaction not found');
-      }
-
-      // 3. Extract IPFS hash from transaction metadata
-      const ipfsHash = this.extractIPFSHash(txDetails);
+            // Get metadata from IPFS
+            const ipfsHash = txDetails.metadata['674']?.ipfs;
       if (!ipfsHash) {
-        throw new Error('No metadata found in transaction');
+                return null;
       }
 
-      // 4. Retrieve metadata from IPFS
       const metadata = await this.pinataService.getMetadata(ipfsHash);
       return metadata;
     } catch (error) {
-      console.error('Error retrieving NFT metadata:', error);
-      throw new Error('Failed to retrieve NFT metadata');
-    }
-  }
-
-  private extractIPFSHash(txDetails: TransactionDetails): string | null {
-    try {
-      // Extract IPFS hash from transaction metadata
-      const metadata = txDetails.metadata;
-      if (!metadata) return null;
-
-      // Example: Looking for IPFS hash in metadata
-      const ipfsHash = metadata['674']?.msg || metadata['674']?.ipfs;
-      return ipfsHash || null;
-    } catch (error) {
-      console.error('Error extracting IPFS hash:', error);
+            console.error('Error getting NFT metadata:', error);
       return null;
     }
   }
 
-  async verifyAccess(assetId: string, ownerAddress: string): Promise<boolean> {
+    async verifyAccess(address: string, assetId: string): Promise<boolean> {
     try {
-      const utxos = await dbSyncService.getUtxosForAddress(ownerAddress);
-      return utxos.some((utxo: UTXO) => 
-        utxo.assets && utxo.assets[assetId] && utxo.assets[assetId] > 0
-      );
+            const utxos = await dbSyncService.getUtxosForAddress(address);
+            return utxos.some(utxo => {
+                const assets = utxo.assets || {};
+                return Object.keys(assets).includes(assetId);
+            });
     } catch (error) {
-      console.error('Error verifying access:', error);
+            console.error('Error verifying NFT access:', error);
       return false;
     }
   }

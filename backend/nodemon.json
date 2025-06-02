@@ -1,9 +1,0 @@
-{
-  "exec": "node --max-old-space-size=8192 ./dist/index.js",
-  "watch": ["src"],
-  "ext": "ts",
-  "ignore": ["src/**/*.spec.ts"],
-  "execMap": {
-    "ts": "ts-node"
-  }
-} 

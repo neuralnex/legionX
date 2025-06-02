@@ -1,9 +1,8 @@
-import { User } from '../entities/User';
-import { AppDataSource } from '../config/database';
+import { User } from '../entities/User.js';
+import { AppDataSource } from '../config/database.js';
 import * as jose from 'jose';
-import { UserPayload } from '../types/auth';
-import { RegisterRequest, LinkWalletRequest } from '../types/auth';
-import { Logger } from '../utils/logger';
+import type { UserPayload, RegisterRequest, LinkWalletRequest } from '../types/auth.js';
+import { Logger } from '../utils/logger.js';
 
 interface JWTPayload extends jose.JWTPayload {
   sub: string;
@@ -25,8 +24,8 @@ export class AuthService {
       const user = userRepo.create({
         email: data.email,
         wallet: data.wallet,
-        username: data.email.split('@')[0], // Generate username from email
-        password: '', // Password will be set later
+        address: data.wallet || '',
+        name: data.email.split('@')[0], // Generate name from email
       });
 
       // Save user
@@ -63,6 +62,7 @@ export class AuthService {
       }
 
       user.wallet = data.wallet;
+      user.address = data.wallet;
       return await userRepo.save(user);
     } catch (error) {
       Logger.error('Error linking wallet:', error);
@@ -81,8 +81,8 @@ export class AuthService {
   async generateToken(user: User): Promise<string> {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const payload: JWTPayload = {
-      sub: user.id.toString(),
-      email: user.email,
+      sub: user.id,
+      email: user.email || '',
       wallet: user.wallet
     };
 
@@ -101,7 +101,7 @@ export class AuthService {
       const jwtPayload = payload as JWTPayload;
       
       return {
-        sub: parseInt(jwtPayload.sub),
+        sub: jwtPayload.sub,
         email: jwtPayload.email,
         wallet: jwtPayload.wallet
       };

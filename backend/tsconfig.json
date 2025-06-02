@@ -1,26 +1,21 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "CommonJS",
-    "lib": ["ES2022"],
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
+    "target": "ES2020",                        // Modern JS features
+    "module": "NodeNext",                        // ESM output
+    "moduleResolution": "NodeNext",            // ESM-aware resolution
+    "outDir": "dist",                          // Output directory
+    "rootDir": "src",                          // Source directory
+    "strict": true,                            // All strict type checks
+    "esModuleInterop": true,                   // CJS/ESM interop
+    "skipLibCheck": true,                      // Faster builds
+    "forceConsistentCasingInFileNames": true,  // Case-sensitive imports
+    "resolveJsonModule": true,                  // Allow importing JSON
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "sourceMap": true,
-    "baseUrl": ".",
-    "paths": {
-      "*": ["node_modules/*", "src/types/*"]
-    },
-    "allowJs": true,
-    "declaration": true
+    "noEmit": true,
+    "allowImportingTsExtensions": true,        // Allow .ts extensions in imports
+    "verbatimModuleSyntax": true              // Preserve import/export syntax
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "src/services/lucid.ts", "src/services/lucidtest.ts"]
-} 
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

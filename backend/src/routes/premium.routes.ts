@@ -1,6 +1,7 @@
-import { Router, Request, Response } from 'express';
-import { PremiumController } from '../controllers/premium.controller';
-import { authMiddleware } from '../middleware/auth.middleware';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
+import { PremiumController } from '../controllers/premium.controller.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
 
 const router: Router = Router();
 

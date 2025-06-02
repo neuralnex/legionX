@@ -1,4 +1,4 @@
-declare module './middleware/error.middleware' {
+declare module '../middleware/error.middleware' {
   import { Request, Response, NextFunction } from 'express';
 
   export class AppError extends Error {

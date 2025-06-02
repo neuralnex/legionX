@@ -1,9 +1,9 @@
-import { Request, Response } from 'express';
-import { AppDataSource } from '../config/database';
-import { Listing } from '../entities/Listing';
-import { User } from '../entities/User';
-import { Agent } from '../entities/Agent';
-import { AppError } from '../middleware/error.middleware';
+import type { Request, Response } from 'express';
+import { AppDataSource } from '../config/database.ts';
+import { Listing } from '../entities/Listing.ts';
+import { User } from '../entities/User.ts';
+import { Agent } from '../entities/Agent.ts';
+import { AppError } from '../middleware/error.middleware.ts';
 
 const listingRepository = AppDataSource.getRepository(Listing);
 const userRepository = AppDataSource.getRepository(User);

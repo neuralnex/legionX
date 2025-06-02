@@ -1,10 +1,11 @@
-import { Request, Response } from 'express';
-import { AppDataSource } from '../config/database';
-import { Purchase } from '../entities/Purchase';
-import { Listing } from '../entities/Listing';
-import { User } from '../entities/User';
-import { AppError } from '../middleware/error.middleware';
-// import { LucidService } from '../services/lucid';
+import type { Request, Response } from 'express';
+import { AppDataSource } from '../config/database.js';
+import { Purchase } from '../entities/Purchase.js';
+import { Listing } from '../entities/Listing.ts';
+import { User } from '../entities/User.ts';
+import { AppError } from '../middleware/error.middleware.ts';
+import { LucidService } from '../services/lucid.js';
+import { Logger } from '../utils/logger.ts';
 import { config } from 'dotenv';
 
 const purchaseRepository = AppDataSource.getRepository(Purchase);
@@ -12,14 +13,24 @@ const listingRepository = AppDataSource.getRepository(Listing);
 const userRepository = AppDataSource.getRepository(User);
 
 export class PurchaseController {
-  // private lucidService: LucidService;
+  private lucidService: LucidService | null = null;
+  private logger: Logger;
 
   constructor() {
     config(); // Load environment variables
-    // this.lucidService = new LucidService();
+    this.initializeLucid();
+    this.logger = new Logger('PurchaseController');
+  }
+
+  private async initializeLucid() {
+    this.lucidService = await LucidService.getInstance();
   }
 
   async createPurchase(req: Request, res: Response) {
+    try {
+      if (!this.lucidService) {
+        throw new Error('LucidService not initialized');
+      }
     const { listingId } = req.body;
     const buyerId = (req as any).user.id;
 
@@ -48,7 +59,17 @@ export class PurchaseController {
     });
 
     await purchaseRepository.save(purchase);
-    res.status(201).json(purchase);
+
+    // Create blockchain transaction
+      const txHash = await this.lucidService.createPurchase(purchase, buyer);
+      purchase.txHash = txHash;
+      await purchaseRepository.save(purchase);
+
+      res.status(201).json(purchase);
+    } catch (error) {
+      this.logger.error('Error creating purchase transaction:', error);
+      throw new AppError('Failed to create purchase transaction', 500, 'TRANSACTION_FAILED');
+    }
   }
 
   async getPurchase(req: Request, res: Response) {

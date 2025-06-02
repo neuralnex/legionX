@@ -1,9 +1,9 @@
-import { AppDataSource } from '../config/database';
-import { Listing } from '../entities/Listing';
-import { Purchase } from '../entities/Purchase';
-import { User } from '../entities/User';
-import { Logger } from '../utils/logger';
-// import { LucidService } from './lucid';
+import { AppDataSource } from '../config/database.js';
+import { Listing } from '../entities/Listing.js';
+import { Purchase } from '../entities/Purchase.js';
+import { User } from '../entities/User.js';
+import { Logger } from '../utils/logger.js';
+// import { LucidService } from './lucid.ts';
 
 export class FeeService {
     private static readonly LISTING_FEE = 1.5; // 1.5 ADA
@@ -21,7 +21,7 @@ export class FeeService {
 
     // Processing  listing fee payment
 
-    static async processListingFee(listingId: string, userId: number): Promise<boolean> {
+    static async processListingFee(listingId: string, userId: string): Promise<boolean> {
         try {
             const listingRepo = AppDataSource.getRepository(Listing);
             const listing = await listingRepo.findOne({ where: { id: listingId } });
@@ -85,7 +85,7 @@ export class FeeService {
             );
 
             // Update purchase with fee transaction
-            purchase.feeTxHash = txHash;
+            purchase.txHash = txHash;
             await purchaseRepo.save(purchase);
 
             return true;
@@ -98,7 +98,7 @@ export class FeeService {
     /**
      * Process premium listing purchase
      */
-    static async processPremiumListing(listingId: string, userId: number): Promise<boolean> {
+    static async processPremiumListing(listingId: string, userId: string): Promise<boolean> {
         try {
             const listingRepo = AppDataSource.getRepository(Listing);
             const userRepo = AppDataSource.getRepository(User);
@@ -133,7 +133,7 @@ export class FeeService {
     /**
      * Process analytics subscription
      */
-    static async processAnalyticsSubscription(userId: number): Promise<boolean> {
+    static async processAnalyticsSubscription(userId: string): Promise<boolean> {
         try {
             const userRepo = AppDataSource.getRepository(User);
             const user = await userRepo.findOne({ where: { id: userId } });
@@ -204,18 +204,18 @@ export class FeeService {
         }
     }
 
-    static async processFee(
+    private static async processFee(
         amount: number,
         treasuryAddress: string,
         description: string
     ): Promise<string> {
-        try {
-            // Temporary mock implementation
-            this.logger.info(`Processing fee: ${amount} ADA to ${treasuryAddress}`);
-            return 'mock_transaction_hash';
-        } catch (error) {
-            this.logger.error('Error processing fee:', error);
-            throw new Error('Failed to process fee');
-        }
+        // Mock implementation - replace with actual blockchain transaction
+        return `tx_${Math.random().toString(36).substring(2)}`;
+    }
+
+    private async getUserById(userId: string): Promise<User | null> {
+        return await AppDataSource.getRepository(User).findOne({
+            where: { id: userId }
+        });
     }
 } 

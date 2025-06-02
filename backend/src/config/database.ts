@@ -1,8 +1,8 @@
 import { DataSource } from 'typeorm';
-import { User } from '../entities/User';
-import { Listing } from '../entities/Listing';
-import { Purchase } from '../entities/Purchase';
-import { Agent } from '../entities/Agent';
+import { User } from '../entities/User.ts';
+import { Listing } from '../entities/Listing.ts';
+import { Purchase } from '../entities/Purchase.ts';
+import { Agent } from '../entities/Agent.ts';
 import dotenv from 'dotenv';
 
 // Load environment variables

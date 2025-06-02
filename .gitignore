@@ -11,3 +11,10 @@ scripts/
 db.dump
 legionx_db.sql
 legionx_db.dump
+tests/
+jest.config.ts
+model.json
+test-db.ts
+test-dbsync.ts
+.ps1
+pitch_deck.md
