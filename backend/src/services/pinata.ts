@@ -1,4 +1,5 @@
-import { PinataSDK } from 'pinata';
+import { PinataSDK } from '@pinata/sdk';
+import type { GetCIDResponse } from '@pinata/sdk';
 import { config } from 'dotenv';
 import { Logger } from '../utils/logger.js';
 import { ValidationError } from '../types/errors.js';
@@ -105,7 +106,8 @@ export class PinataService {
   async getMetadata(ipfsHash: string): Promise<NFTMetadata> {
     try {
       const data = await this.pinata.gateways.public.get(ipfsHash);
-      const metadata = data as NFTMetadata;
+      // Convert GetCIDResponse to NFTMetadata by parsing the data
+      const metadata = JSON.parse(JSON.stringify(data)) as NFTMetadata;
       this.validateMetadata(metadata);
       return metadata;
     } catch (error) {
@@ -117,7 +119,9 @@ export class PinataService {
   async getFile(ipfsHash: string): Promise<Blob> {
     try {
       const data = await this.pinata.gateways.public.get(ipfsHash);
-      return new Blob([data]);
+      // Convert the response to a Blob using the raw data
+      const response = await fetch(`https://gateway.pinata.cloud/ipfs/${ipfsHash}`);
+      return await response.blob();
     } catch (error) {
       this.logger.error('Failed to retrieve file:', error);
       throw error;
@@ -126,7 +130,7 @@ export class PinataService {
 
   async pinFile(ipfsHash: string): Promise<void> {
     try {
-      await this.pinata.pin.add(ipfsHash);
+      await this.pinata.pinning.add(ipfsHash);
       this.logger.info(`File pinned successfully: ${ipfsHash}`);
     } catch (error) {
       this.logger.error('Failed to pin file:', error);
@@ -136,7 +140,7 @@ export class PinataService {
 
   async unpinFile(ipfsHash: string): Promise<void> {
     try {
-      await this.pinata.pin.remove(ipfsHash);
+      await this.pinata.pinning.remove(ipfsHash);
       this.logger.info(`File unpinned successfully: ${ipfsHash}`);
     } catch (error) {
       this.logger.error('Failed to unpin file:', error);
