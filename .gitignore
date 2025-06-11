@@ -19,3 +19,5 @@ test-dbsync.ts
 .ps1
 pitch_deck.md
 .idea/
+test-db.ts
+test-dbsync.ts
