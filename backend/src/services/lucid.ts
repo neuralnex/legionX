@@ -10,7 +10,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { PinataService } from './pinata.js';
-import type { NFTMetadata } from './pinata.js';
+import type { AIModelNFTMetadata } from '../types/nft.js';
 
 // Load environment variables
 dotenv.config();
@@ -222,24 +222,39 @@ export class LucidService {
     try {
       // Create NFT metadata for Pinata
       const modelMetadata = listing.modelMetadata as ExtendedAIModelMetadata;
-      const nftMetadata: NFTMetadata = {
+      const nftMetadata: AIModelNFTMetadata = {
         name: modelMetadata.name,
         description: modelMetadata.description,
         image: modelMetadata.image || '', // Use a default image if none provided
         properties: {
-          files: [{
-            name: modelMetadata.name,
-            mediaType: 'application/json',
-            src: modelMetadata.modelUrl || ''
-          }],
+          modelMetadata: {
+            ...modelMetadata,
+            accessPoint: {
+              type: 'custom',
+              endpoint: modelMetadata.modelUrl || ''
+            },
+            // Add file information to tags
+            tags: [
+              ...(modelMetadata.tags || []),
+              `file:${modelMetadata.name}`,
+              'mediaType:application/json'
+            ]
+          },
           category: 'AI Model',
           version: modelMetadata.version
-        },
-        version: '1.0.0'
+        }
       };
 
       // Upload metadata to Pinata
-      const ipfsHash = await this.pinataService.uploadMetadata(nftMetadata);
+      const result = await this.pinataService.uploadNFTMetadata(
+        modelMetadata,
+        nftMetadata.image,
+        {
+          name: nftMetadata.name,
+          description: nftMetadata.description
+        }
+      );
+      const ipfsHash = result.cid;
       this.logger.info(`Metadata uploaded to IPFS: ${ipfsHash}`);
 
       // Update listing with IPFS hash

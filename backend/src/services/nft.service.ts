@@ -1,7 +1,7 @@
 import { dbSyncService } from '../config/database.js';
 import { PinataService } from './pinata.js';
 import type { UTXO, TransactionDetails } from '../types/blockchain.js';
-import type { NFTMetadata } from '../types/nft.js';
+import type { AIModelNFTMetadata } from '../types/nft.js';
 
 export class NFTService {
   private pinataService: PinataService;
@@ -10,27 +10,27 @@ export class NFTService {
     this.pinataService = new PinataService();
   }
 
-    async getMetadataFromNFT(utxo: UTXO): Promise<NFTMetadata | null> {
+    async getMetadataFromNFT(utxo: UTXO): Promise<AIModelNFTMetadata | null> {
         try {
             // Get transaction details
             const txDetails = await dbSyncService.getTransactionDetails(utxo.txHash);
             if (!txDetails || !txDetails.metadata) {
                 return null;
-      }
+            }
 
             // Get metadata from IPFS
             const ipfsHash = txDetails.metadata['674']?.ipfs;
-      if (!ipfsHash) {
+            if (!ipfsHash) {
                 return null;
-      }
+            }
 
-      const metadata = await this.pinataService.getMetadata(ipfsHash);
-      return metadata;
-    } catch (error) {
+            const response = await this.pinataService.retrieveNFTMetadata(ipfsHash);
+            return response.data;
+        } catch (error) {
             console.error('Error getting NFT metadata:', error);
-      return null;
+            return null;
+        }
     }
-  }
 
     async verifyAccess(address: string, assetId: string): Promise<boolean> {
     try {

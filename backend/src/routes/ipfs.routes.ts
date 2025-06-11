@@ -9,8 +9,8 @@ const pinataService = new PinataService();
 // Upload metadata
 router.post('/upload', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const metadata = req.body;
-        const result = await pinataService.uploadMetadata(metadata);
+        const { modelMetadata, imageCid, options } = req.body;
+        const result = await pinataService.uploadNFTMetadata(modelMetadata, imageCid, options);
         res.json(result);
     } catch (error) {
         res.status(500).json({ error: 'Failed to upload metadata' });
@@ -21,7 +21,7 @@ router.post('/upload', authMiddleware, async (req: Request, res: Response) => {
 router.get('/metadata/:cid', authMiddleware, async (req: Request, res: Response) => {
     try {
         const { cid } = req.params;
-        const metadata = await pinataService.getMetadata(cid);
+        const metadata = await pinataService.retrieveNFTMetadata(cid);
         res.json(metadata);
     } catch (error) {
         res.status(500).json({ error: 'Failed to get metadata' });
