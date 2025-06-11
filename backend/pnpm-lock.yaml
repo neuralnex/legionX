@@ -43,7 +43,10 @@ importers:
         version: 8.15.6
       pinata:
         specifier: ^2.4.6
-        version: 2.4.6
+        version: 2.4.6(react@19.1.0)
+      react:
+        specifier: ^19.1.0
+        version: 19.1.0
       reflect-metadata:
         specifier: ^0.2.1
         version: 0.2.2
@@ -2454,6 +2457,10 @@ packages:
 
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
+
+  react@19.1.0:
+    resolution: {integrity: sha512-FS+XFBNvn3GTAWq26joslQgWNoFu08F4kl0J4CgdNKADkdSGXQyTCnKteIAJy96Br6YbpEU1LSzV5dYtjMkMDg==}
+    engines: {node: '>=0.10.0'}
 
   readable-stream@3.6.2:
     resolution: {integrity: sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==}
@@ -5674,7 +5681,9 @@ snapshots:
 
   picomatch@2.3.1: {}
 
-  pinata@2.4.6: {}
+  pinata@2.4.6(react@19.1.0):
+    optionalDependencies:
+      react: 19.1.0
 
   pirates@4.0.7: {}
 
@@ -5736,6 +5745,8 @@ snapshots:
       unpipe: 1.0.0
 
   react-is@18.3.1: {}
+
+  react@19.1.0: {}
 
   readable-stream@3.6.2:
     dependencies:
