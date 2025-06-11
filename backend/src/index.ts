@@ -59,6 +59,22 @@ app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+// Root endpoint
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    message: 'Welcome to LegionX API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      auth: '/api/v1/auth',
+      listings: '/api/v1/listings',
+      purchases: '/api/v1/purchases',
+      access: '/api/v1/access',
+      premium: '/api/v1/premium'
+    }
+  });
+});
+
 // API routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/listings', listingRoutes);
