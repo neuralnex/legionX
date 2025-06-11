@@ -1,25 +1,20 @@
-import { PinataSDK } from '@pinata/sdk';
-import type { GetCIDResponse } from '@pinata/sdk';
+import { PinataSDK } from 'pinata';
+import type { PinataResponse } from 'pinata';
 import { config } from 'dotenv';
 import { Logger } from '../utils/logger.js';
-import { ValidationError } from '../types/errors.js';
+import type { AIModelMetadata } from '../types/model.js';
+import type { AIModelNFTMetadata } from '../types/nft.js';
 
 config();
 
-export interface NFTMetadata {
-  name: string;
-  description: string;
-  image: string;
-  properties: {
-    files: Array<{
-      name: string;
-      mediaType: string;
-      src: string;
-    }>;
-    category: string;
-    version: string;
-  };
-  version: string;
+export interface PinataFileResponse extends Omit<PinataResponse, 'data'> {
+  data: Buffer | string;
+  contentType: string;
+}
+
+export interface PinataMetadataResponse extends Omit<PinataResponse, 'data'> {
+  data: AIModelNFTMetadata;
+  contentType: string;
 }
 
 export class PinataService {
@@ -30,120 +25,115 @@ export class PinataService {
   constructor() {
     this.logger = new Logger('PinataService');
     this.gateway = process.env.PINATA_GATEWAY || '';
-    
+
     if (!process.env.PINATA_JWT) {
       throw new Error('PINATA_JWT environment variable is required');
     }
 
-    // Initialize Pinata SDK
     this.pinata = new PinataSDK({
-      pinataJwt: process.env.PINATA_JWT,
-      pinataGateway: this.gateway
+      pinataJwt: process.env.PINATA_JWT!,
+      pinataGateway: this.gateway,
     });
   }
 
-  private validateMetadata(metadata: NFTMetadata): void {
-    if (!metadata.name || typeof metadata.name !== 'string') {
-      throw new ValidationError('Invalid metadata: name is required and must be a string');
-    }
-
-    if (!metadata.description || typeof metadata.description !== 'string') {
-      throw new ValidationError('Invalid metadata: description is required and must be a string');
-    }
-
-    if (!metadata.image || typeof metadata.image !== 'string') {
-      throw new ValidationError('Invalid metadata: image is required and must be a string');
-    }
-
-    if (!metadata.properties || typeof metadata.properties !== 'object') {
-      throw new ValidationError('Invalid metadata: properties is required and must be an object');
-    }
-
-    if (!Array.isArray(metadata.properties.files)) {
-      throw new ValidationError('Invalid metadata: properties.files must be an array');
-    }
-
-    metadata.properties.files.forEach((file, index) => {
-      if (!file.name || !file.mediaType || !file.src) {
-        throw new ValidationError(`Invalid file at index ${index}: name, mediaType, and src are required`);
-      }
-    });
-
-    if (!metadata.properties.category || typeof metadata.properties.category !== 'string') {
-      throw new ValidationError('Invalid metadata: properties.category is required and must be a string');
-    }
-
-    if (!metadata.properties.version || typeof metadata.properties.version !== 'string') {
-      throw new ValidationError('Invalid metadata: properties.version is required and must be a string');
-    }
-  }
-
-  async uploadMetadata(metadata: NFTMetadata): Promise<string> {
+  async uploadFile(file: Buffer, fileName: string, mimeType = 'application/octet-stream'): Promise<PinataResponse> {
     try {
-      this.validateMetadata(metadata);
-
-      const result = await this.pinata.upload.public.json(metadata);
-      this.logger.info(`Metadata uploaded successfully: ${result.cid}`);
-      return result.cid;
-    } catch (error) {
-      this.logger.error('Failed to upload metadata:', error);
-      throw error;
-    }
-  }
-
-  async uploadFile(file: Buffer, fileName: string): Promise<string> {
-    try {
-      const fileObj = new File([file], fileName, { type: 'application/octet-stream' });
+      const fileObj = new File([file], fileName, { type: mimeType });
       const result = await this.pinata.upload.public.file(fileObj);
       this.logger.info(`File uploaded successfully: ${result.cid}`);
-      return result.cid;
+      return result;
     } catch (error) {
       this.logger.error('Failed to upload file:', error);
       throw error;
     }
   }
 
-  async getMetadata(ipfsHash: string): Promise<NFTMetadata> {
+  async uploadImage(imageBuffer: Buffer, fileName: string): Promise<string> {
     try {
-      const data = await this.pinata.gateways.public.get(ipfsHash);
-      // Convert GetCIDResponse to NFTMetadata by parsing the data
-      const metadata = JSON.parse(JSON.stringify(data)) as NFTMetadata;
-      this.validateMetadata(metadata);
-      return metadata;
+      const result = await this.uploadFile(imageBuffer, fileName, 'image/png');
+      return `ipfs://${result.cid}`;
     } catch (error) {
-      this.logger.error('Failed to retrieve metadata:', error);
+      this.logger.error('Failed to upload image:', error);
       throw error;
     }
   }
 
-  async getFile(ipfsHash: string): Promise<Blob> {
+  async uploadNFTMetadata(
+    modelMetadata: AIModelMetadata,
+    imageCid: string,
+    options: {
+      name: string;
+      description: string;
+    }
+  ): Promise<PinataResponse> {
     try {
-      const data = await this.pinata.gateways.public.get(ipfsHash);
-      // Convert the response to a Blob using the raw data
-      const response = await fetch(`https://gateway.pinata.cloud/ipfs/${ipfsHash}`);
-      return await response.blob();
+      // Validate required metadata fields
+      if (!modelMetadata.name || !modelMetadata.description || !modelMetadata.version) {
+        throw new Error('Missing required model metadata fields: name, description, and version are required');
+      }
+
+      // Create NFT metadata
+      const nftMetadata: AIModelNFTMetadata = {
+        name: options.name,
+        description: options.description,
+        image: imageCid,
+        properties: {
+          modelMetadata: modelMetadata,
+          category: 'AI Model',
+          version: modelMetadata.version
+        }
+      };
+
+      const result = await this.pinata.upload.public.json(nftMetadata);
+      this.logger.info(`NFT metadata uploaded successfully: ${result.cid}`);
+      return result;
+    } catch (error) {
+      this.logger.error('Failed to upload NFT metadata:', error);
+      throw error;
+    }
+  }
+
+  async retrieveFile(cid: string): Promise<PinataFileResponse> {
+    try {
+      const data = await this.pinata.gateways.public.get(cid);
+      this.logger.info(`File retrieved successfully for CID: ${cid}`);
+      const { ipfsHash, pinSize, timestamp, ...rest } = data;
+      return {
+        ...rest,
+        ipfsHash,
+        pinSize,
+        timestamp,
+        data: data.data || '',
+        contentType: data.type || 'application/octet-stream'
+      };
     } catch (error) {
       this.logger.error('Failed to retrieve file:', error);
       throw error;
     }
   }
 
-  async pinFile(ipfsHash: string): Promise<void> {
+  async retrieveNFTMetadata(cid: string): Promise<PinataMetadataResponse> {
     try {
-      await this.pinata.pinning.add(ipfsHash);
-      this.logger.info(`File pinned successfully: ${ipfsHash}`);
-    } catch (error) {
-      this.logger.error('Failed to pin file:', error);
-      throw error;
-    }
-  }
+      const data = await this.pinata.gateways.public.get(cid);
+      this.logger.info(`NFT metadata retrieved successfully for CID: ${cid}`);
+      
+      // Validate that the retrieved data matches AIModelNFTMetadata structure
+      const metadata = data.data as AIModelNFTMetadata;
+      if (!metadata.name || !metadata.description || !metadata.image || !metadata.properties?.modelMetadata) {
+        throw new Error('Retrieved data does not match AIModelNFTMetadata structure');
+      }
 
-  async unpinFile(ipfsHash: string): Promise<void> {
-    try {
-      await this.pinata.pinning.remove(ipfsHash);
-      this.logger.info(`File unpinned successfully: ${ipfsHash}`);
+      const { ipfsHash, pinSize, timestamp, ...rest } = data;
+      return {
+        ...rest,
+        ipfsHash,
+        pinSize,
+        timestamp,
+        data: metadata,
+        contentType: 'application/json'
+      };
     } catch (error) {
-      this.logger.error('Failed to unpin file:', error);
+      this.logger.error('Failed to retrieve NFT metadata:', error);
       throw error;
     }
   }

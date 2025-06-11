@@ -1,4 +1,4 @@
-declare module '@pinata/sdk' {
+declare module 'pinata' {
   export interface PinataConfig {
     pinataJwt: string;
     pinataGateway?: string;
@@ -20,6 +20,25 @@ declare module '@pinata/sdk' {
     [key: string]: any;
   }
 
+  export interface PinnedFile {
+    id: string;
+    ipfs_pin_hash: string;
+    size: number;
+    user_id: string;
+    date_pinned: string;
+    date_unpinned: string | null;
+    metadata: {
+      name: string;
+      keyvalues: Record<string, any>;
+    };
+    regions: string[];
+  }
+
+  export interface PinnedFilesResponse {
+    count: number;
+    rows: PinnedFile[];
+  }
+
   export interface PinataSDK {
     upload: {
       public: {
@@ -35,6 +54,7 @@ declare module '@pinata/sdk' {
     pinning: {
       add: (cid: string) => Promise<void>;
       remove: (cid: string) => Promise<void>;
+      list: () => Promise<PinnedFilesResponse>;
     };
   }
 

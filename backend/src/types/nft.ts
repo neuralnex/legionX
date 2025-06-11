@@ -1,4 +1,6 @@
-export interface NFTMetadata {
+import type { AIModelMetadata } from './model.js';
+
+export interface BaseNFTMetadata {
     name: string;
     description: string;
     image: string;
@@ -9,4 +11,12 @@ export interface NFTMetadata {
         trait_type: string;
         value: string | number;
     }>;
+}
+
+export interface AIModelNFTMetadata extends BaseNFTMetadata {
+    properties: {
+        modelMetadata: AIModelMetadata;
+        category: string;
+        version: string;
+    };
 } 
