@@ -2479,6 +2479,10 @@ body {
   background-color: hsl(var(--sidebar-border));
 }
 
+.focus\:border-transparent:focus {
+  border-color: transparent;
+}
+
 .focus\:bg-accent:focus {
   background-color: hsl(var(--accent));
 }
