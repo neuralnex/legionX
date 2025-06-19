@@ -1,4 +1,4 @@
-// File: /home/inspiuser/Desktop/Work/legionX/frontend/app/(landing)/page.tsx
+// File: C:\Users\Nexus\legionX\frontend\app\(landing)\page.tsx
 import * as entry from '../../../../app/(landing)/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

@@ -1,4 +1,4 @@
-// File: /home/inspiuser/Desktop/Work/legionX/frontend/app/(app)/marketplace/page.tsx
+// File: C:\Users\Nexus\legionX\frontend\app\(app)\marketplace\page.tsx
 import * as entry from '../../../../../app/(app)/marketplace/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

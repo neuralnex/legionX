@@ -89,7 +89,8 @@ export default function CustomWalletConnect({ onConnect, onClose, isOpen = true 
     setError(null)
 
     try {
-      const walletApi = window.cardano?.[walletId]
+      // Type-safe access to wallet API
+      const walletApi = walletId in (window.cardano || {}) ? window.cardano?.[walletId as keyof typeof window.cardano] : undefined
       if (!walletApi) {
         throw new Error(`${walletId} wallet not found`)
       }

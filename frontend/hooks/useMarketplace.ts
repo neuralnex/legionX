@@ -15,86 +15,6 @@ export function useMarketplace(filters: ListingsQuery = {}) {
     queryKey: ["marketplace", filters],
     queryFn: () => listingsAPI.getAll(filters),
     staleTime: 60_000, // 1 minute
-    placeholderData: {
-      listings: [
-        {
-          id: "1",
-          title: "CodeCraft Pro",
-          description:
-            "An AI agent specialized in writing clean, efficient code across multiple programming languages.",
-          price: 0.25,
-          type: "coding",
-          features: ["Code Generation", "Debugging", "Optimization"],
-          images: ["/placeholder.svg?height=400&width=400"],
-          seller: {
-            id: "101",
-            username: "Ella Smith",
-          },
-          isPremium: true,
-          isActive: true,
-          createdAt: "2023-09-15T10:30:00Z",
-          updatedAt: "2023-09-15T10:30:00Z",
-        },
-        {
-          id: "2",
-          title: "Data Sage",
-          description: "Expert in data analysis, visualization, and extracting insights from complex datasets.",
-          price: 0.18,
-          type: "data-analysis",
-          features: ["Data Analysis", "Visualization", "Insights"],
-          images: ["/placeholder.svg?height=400&width=400"],
-          seller: {
-            id: "102",
-            username: "Alex Kim",
-          },
-          isPremium: false,
-          isActive: true,
-          createdAt: "2023-09-14T10:30:00Z",
-          updatedAt: "2023-09-14T10:30:00Z",
-        },
-        {
-          id: "3",
-          title: "Text Genius",
-          description:
-            "Specialized in content creation, copywriting, and text analysis with advanced language understanding.",
-          price: 0.15,
-          type: "content",
-          features: ["Content Creation", "Copywriting", "Text Analysis"],
-          images: ["/placeholder.svg?height=400&width=400"],
-          seller: {
-            id: "103",
-            username: "Omar Hassan",
-          },
-          isPremium: false,
-          isActive: true,
-          createdAt: "2023-09-13T10:30:00Z",
-          updatedAt: "2023-09-13T10:30:00Z",
-        },
-        {
-          id: "4",
-          title: "Pixel Muse",
-          description: "Creative AI for generating and editing images, designs, and visual content.",
-          price: 0.22,
-          type: "visual",
-          features: ["Image Generation", "Design", "Visual Content"],
-          images: ["/placeholder.svg?height=400&width=400"],
-          seller: {
-            id: "104",
-            username: "Lily Lane",
-          },
-          isPremium: true,
-          isActive: true,
-          createdAt: "2023-09-12T10:30:00Z",
-          updatedAt: "2023-09-12T10:30:00Z",
-        },
-      ],
-      pagination: {
-        total: 4,
-        page: 1,
-        limit: 8,
-        pages: 1,
-      },
-    },
     // Add error handling
     retry: (failureCount, error) => {
       console.error("❌ Marketplace query error:", error)
@@ -294,13 +214,13 @@ export function useAgentDetail(id: string) {
     ? {
         ...data,
         creator: data.seller,
-        image: data.images?.[0] || "/placeholder.svg?height=400&width=400",
+        image: "/placeholder.svg?height=400&width=400", // Use placeholder since images field doesn't exist
         likes: 0, // This would need to be added to the backend
-        capabilities: data.features || [],
-        modelType: data.type,
-        version: "1.0.0", // Default version
+        capabilities: data.modelMetadata?.tags || [],
+        modelType: data.agent?.name || "ai-agent",
+        version: data.modelMetadata?.version || "1.0.0",
         requirements: {
-          minMemory: data.requirements?.minTokens || 4,
+          minMemory: data.modelMetadata?.requirements?.minMemory || 4,
           minStorage: 2,
           dependencies: ["Node.js"],
         },

@@ -165,7 +165,7 @@ export default function PurchasePage() {
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold">{agent.title}</h2>
-                  <p className="text-gray-400 text-sm">Created by {agent.creator.username}</p>
+                  <p className="text-gray-400 text-sm">Created by {agent.creator.name || agent.creator.email || 'Unknown Creator'}</p>
                 </div>
                 <div className="ml-auto">
                   <span className="text-xl font-bold text-purple-400">{agent.price}</span>

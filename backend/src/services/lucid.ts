@@ -26,17 +26,12 @@ const walletAddress = readFileSync(join(__dirname, "../../../smartcontract/me.ad
 
 // Types
 interface MarketDatum {
-  listingId: string;
   price: bigint;
   full_price: bigint | null;
-  seller: string;
-  action: 'List' | 'Edit' | 'Cancel';
-  modelMetadata: AIModelMetadata;
-  subscription?: {
-    duration: number;
-    token: string;
-  };
-  ipfsHash?: string;
+  seller: string; // ByteArray as string (VerificationKey hash)
+  subscription: string | null; // ByteArray as string (NFT policy ID if subscription)
+  duration: number | null; // Subscription duration in months
+  owner: string; // ByteArray as string (Current owner's VerificationKey hash)
 }
 
 interface OracleDatum {
@@ -404,4 +399,4 @@ export class LucidService {
   getLucid(): Lucid {
     return this.lucid;
   }
-} 
+}

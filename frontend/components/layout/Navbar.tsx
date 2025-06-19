@@ -104,8 +104,10 @@ const Navbar = () => {
                 <Link href="/profile">
                   <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center">
                     <span className="text-sm font-medium">
-                      {user?.username
-                        ? user.username.charAt(0).toUpperCase()
+                      {user?.name
+                        ? user.name.charAt(0).toUpperCase()
+                        : user?.email
+                        ? user.email.charAt(0).toUpperCase()
                         : 'U'}
                     </span>
                   </div>
@@ -245,8 +247,10 @@ const Navbar = () => {
                   <div className="flex items-center space-x-3 p-3 bg-gray-800/30 rounded-lg">
                     <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center">
                       <span className="text-sm font-medium">
-                        {user?.username
-                          ? user.username.charAt(0).toUpperCase()
+                        {user?.name
+                          ? user.name.charAt(0).toUpperCase()
+                          : user?.email
+                          ? user.email.charAt(0).toUpperCase()
                           : 'U'}
                       </span>
                     </div>

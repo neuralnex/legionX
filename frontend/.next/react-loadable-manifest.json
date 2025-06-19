@@ -1,20 +1,26 @@
 {
-  "lib/api.ts -> ../store/useAuthStore": {
-    "id": "lib/api.ts -> ../store/useAuthStore",
+  "lib\\api.ts -> ../store/useAuthStore": {
+    "id": "lib\\api.ts -> ../store/useAuthStore",
     "files": [
       "static/chunks/_app-pages-browser_store_useAuthStore_ts.js"
     ]
   },
-  "node_modules/.pnpm/@tanstack+query-devtools@5.76.0/node_modules/@tanstack/query-devtools/build/dev.js -> ./DevtoolsComponent/6BZD2SY2.js": {
-    "id": "node_modules/.pnpm/@tanstack+query-devtools@5.76.0/node_modules/@tanstack/query-devtools/build/dev.js -> ./DevtoolsComponent/6BZD2SY2.js",
+  "node_modules\\.pnpm\\@tanstack+query-devtools@5.76.0\\node_modules\\@tanstack\\query-devtools\\build\\dev.js -> ./DevtoolsComponent/6BZD2SY2.js": {
+    "id": "node_modules\\.pnpm\\@tanstack+query-devtools@5.76.0\\node_modules\\@tanstack\\query-devtools\\build\\dev.js -> ./DevtoolsComponent/6BZD2SY2.js",
     "files": [
       "static/chunks/_app-pages-browser_node_modules_pnpm_tanstack_query-devtools_5_76_0_node_modules_tanstack_que-fef58b.js"
     ]
   },
-  "node_modules/.pnpm/@tanstack+query-devtools@5.76.0/node_modules/@tanstack/query-devtools/build/dev.js -> ./DevtoolsPanelComponent/G73NX4V5.js": {
-    "id": "node_modules/.pnpm/@tanstack+query-devtools@5.76.0/node_modules/@tanstack/query-devtools/build/dev.js -> ./DevtoolsPanelComponent/G73NX4V5.js",
+  "node_modules\\.pnpm\\@tanstack+query-devtools@5.76.0\\node_modules\\@tanstack\\query-devtools\\build\\dev.js -> ./DevtoolsPanelComponent/G73NX4V5.js": {
+    "id": "node_modules\\.pnpm\\@tanstack+query-devtools@5.76.0\\node_modules\\@tanstack\\query-devtools\\build\\dev.js -> ./DevtoolsPanelComponent/G73NX4V5.js",
     "files": [
       "static/chunks/_app-pages-browser_node_modules_pnpm_tanstack_query-devtools_5_76_0_node_modules_tanstack_que-3f626e.js"
+    ]
+  },
+  "node_modules\\.pnpm\\next@15.2.4_react-dom@19.1.0_react@19.1.0__react@19.1.0\\node_modules\\next\\dist\\client\\components\\react-dev-overlay\\utils\\use-websocket.js -> @vercel/turbopack-ecmascript-runtime/browser/dev/hmr-client/hmr-client.ts": {
+    "id": "node_modules\\.pnpm\\next@15.2.4_react-dom@19.1.0_react@19.1.0__react@19.1.0\\node_modules\\next\\dist\\client\\components\\react-dev-overlay\\utils\\use-websocket.js -> @vercel/turbopack-ecmascript-runtime/browser/dev/hmr-client/hmr-client.ts",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_pnpm_next_15_2_4_react-dom_19_1_0_react_19_1_0__react_19_1_0_-8c3ee3.js"
     ]
   }
 }

@@ -1,11 +1,19 @@
 // Authentication Types
 export interface User {
   id: string
-  username: string
-  email: string
+  address?: string
+  name?: string
+  email?: string
+  avatar?: string
   wallet?: string
+  isVerified: boolean
+  verificationTxHash?: string
+  isPremium: boolean
+  premiumExpiry?: string | null
+  premiumTxHash?: string
   hasAnalyticsAccess: boolean
   analyticsExpiry?: string | null
+  analyticsTxHash?: string
   createdAt: string
   updatedAt: string
 }
@@ -36,77 +44,83 @@ export interface AIModelMetadata {
   name: string
   description: string
   version: string
-  modelType: string
-  capabilities: string[]
-  parameters: { [key: string]: any }
-  apiEndpoint?: string
-  accessToken?: string
-  pricing: {
-    subscription?: {
-      monthly: number
-      yearly: number
+  framework: string
+  inputFormat: string
+  outputFormat: string
+  accessPoint: {
+    type: 'aws' | 'azure' | 'gcp' | 'custom'
+    endpoint: string
+    region?: string
+    credentials?: {
+      accessKeyId?: string
+      secretAccessKey?: string
     }
-    oneTime?: number
   }
   requirements: {
-    minMemory: number
-    minStorage: number
-    dependencies: string[]
+    minMemory?: number
+    minGPU?: boolean
+    minCPUCores?: number
   }
-}
-
-// Listing Types - Updated to match documentation
-export interface Listing {
-  id: string
-  title: string
-  description: string
-  price: number
-  type: string
-  features?: string[]
-  requirements?: {
-    minTokens?: number
-    apiKey?: boolean
+  pricing: {
+    perRequest?: number
+    perHour?: number
+    perMonth?: number
   }
-  images: string[]
-  seller: {
-    id: string
-    username: string
-  }
-  assetId?: string
-  ownerAddress?: string
-  isPremium: boolean
-  premiumExpiry?: string | null
-  isActive: boolean
-  status?: "pending" | "active" | "inactive"
-  txHash?: string
+  tags: string[]
   createdAt: string
   updatedAt: string
 }
 
-// Updated CreateListingRequest to match documentation
-export interface CreateListingRequest {
-  agentId: string
-  price: string // Changed to string as per documentation
-  duration: number
-  modelMetadata: {
-    name: string
-    description: string
-    version: string
-    framework: string
-    type: string
-  }
+// Agent Types (matches backend Agent entity)
+export interface Agent {
+  id: number
+  name: string
+  description: string
+  modelVersion: string
+  metadataUri: string
+  creator: User
+  listings: Listing[]
+  createdAt: string
+  updatedAt: string
+}
+
+// Listing Types - Updated to match backend Listing entity
+export interface Listing {
+  id: string
+  seller: User
+  agent: Agent
+  price: string // BigInt as string for precision
+  fullPrice?: string // BigInt as string for full purchase price
+  duration: number // Subscription duration in months
+  subscriptionId?: string
+  modelMetadata: AIModelMetadata
+  txHash: string
+  confirmations?: number
+  metadataUri: string
+  status: 'pending' | 'active' | 'sold' | 'cancelled'
   title: string
   description: string
   assetId: string
   ownerAddress: string
-  // Legacy fields for backward compatibility
-  type?: string
-  features?: string[]
-  requirements?: {
-    minTokens?: number
-    apiKey?: boolean
-  }
-  image?: string
+  isPremium: boolean
+  premiumExpiry?: string | null
+  premiumTxHash?: string
+  isActive: boolean
+  listingFeeTxHash?: string
+  createdAt: string
+  updatedAt: string
+}
+
+// Updated CreateListingRequest to match backend expectations
+export interface CreateListingRequest {
+  agentId: string
+  price: string // BigInt as string
+  duration: number
+  modelMetadata: AIModelMetadata
+  title: string
+  description: string
+  assetId: string
+  ownerAddress: string
 }
 
 export interface ListingsResponse {
@@ -128,24 +142,13 @@ export interface ListingsQuery {
   search?: string
 }
 
-// Purchase Types
+// Purchase Types - Updated to match backend Purchase entity
 export interface Purchase {
   id: string
-  listing: {
-    id: string
-    title: string
-    price: number
-    seller?: {
-      id: string
-      username: string
-    }
-  }
-  buyer: {
-    id: string
-    username: string
-  }
+  listing: Listing
+  buyer: User
   status: "pending" | "completed" | "failed" | "cancelled"
-  amount: number
+  amount: string // BigInt as string
   txHash?: string | null
   confirmations?: number | null
   createdAt: string
@@ -154,7 +157,6 @@ export interface Purchase {
 
 export interface CreatePurchaseRequest {
   listingId: string
-  // Legacy field for backward compatibility
   paymentMethod?: "wallet"
 }
 
@@ -217,13 +219,13 @@ export interface APIError {
   }
 }
 
-// API Response wrapper
+// Response Types
 export interface APIResponse<T> {
   data?: T
   error?: APIError["error"]
 }
 
-// Pagination
+// Pagination Types
 export interface PaginationParams {
   page?: number
   limit?: number

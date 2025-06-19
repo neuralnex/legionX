@@ -1,6 +1,6 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
   "/(landing)/page": "app/(landing)/page.js",
   "/(auth)/login/page": "app/(auth)/login/page.js",
-  "/(app)/marketplace/page": "app/(app)/marketplace/page.js",
-  "/(app)/agents/create/page": "app/(app)/agents/create/page.js"
+  "/(app)/marketplace/page": "app/(app)/marketplace/page.js"
 }

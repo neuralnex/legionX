@@ -21,9 +21,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const {
     wallet,
     getAddress,
-    connectWallet: connectWalletLib,
-    disconnectWallet: disconnectWalletLib,
+    ...walletConnector
   } = useConnectWallet()
+  
+  // Extract connect and disconnect functions safely
+  const connectWalletLib = (walletConnector as any).connectWallet
+  const disconnectWalletLib = (walletConnector as any).disconnectWallet
+  
   const [address, setAddress] = useState<string>()
   const [balance, setBalance] = useState<any>()
   const [rewardAddresses, setRewardAddresses] = useState<any>()

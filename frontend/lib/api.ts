@@ -89,7 +89,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Import dynamically to avoid circular dependency
       import("../store/useAuthStore").then((module) => {
-        const useAuthStore = module.default
+        const { useAuthStore } = module
         useAuthStore.getState().logout()
       })
     }
@@ -129,10 +129,10 @@ export const authAPI = {
     return response.data
   },
 
-  // Legacy methods for backward compatibility
+  // Updated to use correct backend endpoints
   register: async (data: RegisterRequest): Promise<AuthResponse> => {
     console.log("🔐 Auth API: Register request", { wallet: data.wallet })
-    const response = await api.post<AuthResponse>("/auth/register", data)
+    const response = await api.post<AuthResponse>("/api/v1/auth/register", data)
     return response.data
   },
 
@@ -141,19 +141,19 @@ export const authAPI = {
       wallet: data.wallet,
       hasRewardAddress: !!data.rewardAddress,
     })
-    const response = await api.post<AuthResponse>("/auth/login/wallet", data)
+    const response = await api.post<AuthResponse>("/api/v1/auth/login/wallet", data)
     return response.data
   },
 
   linkWallet: async (data: LinkWalletRequest): Promise<AuthResponse> => {
     console.log("🔐 Auth API: Link wallet request", { wallet: data.wallet })
-    const response = await api.post<AuthResponse>("/auth/link-wallet", data)
+    const response = await api.post<AuthResponse>("/api/v1/auth/link-wallet", data)
     return response.data
   },
 
   verifyToken: async (): Promise<{ message: string; user: User }> => {
     console.log("🔐 Auth API: Verify token request")
-    const response = await api.get("/auth/verify")
+    const response = await api.get("/api/v1/auth/verify")
     return response.data
   },
 }
@@ -183,16 +183,16 @@ export const listingsAPI = {
     await api.delete(`/api/v1/listings/${id}`)
   },
 
-  // Legacy method for backward compatibility
+  // Updated to use correct backend endpoint
   getAll: async (params?: ListingsQuery): Promise<ListingsResponse> => {
     console.log("📋 Listings API: Get all request", { params })
-    const response = await api.get<ListingsResponse>("/listings", { params })
+    const response = await api.get<ListingsResponse>("/api/v1/listings", { params })
 
     // Additional validation for listings response
     if (typeof response.data === "string") {
       console.error("❌ Listings API returned HTML instead of JSON:", {
         responseType: typeof response.data,
-        contentStart: response.data.substring(0, 500),
+        contentStart: (response.data as string).substring(0, 500),
         possibleCauses: [
           "Wrong API endpoint URL",
           "API server returning error page",
@@ -227,22 +227,22 @@ export const purchasesAPI = {
     return response.data
   },
 
-  // Legacy methods for backward compatibility
+  // Updated to use correct backend endpoints
   getAll: async (params?: PurchasesQuery): Promise<PurchasesResponse> => {
     console.log("📋 Purchases API: Get all request", { params })
-    const response = await api.get<PurchasesResponse>("/purchases", { params })
+    const response = await api.get<PurchasesResponse>("/api/v1/purchases", { params })
     return response.data
   },
 
   update: async (id: string, data: UpdatePurchaseRequest): Promise<Purchase> => {
     console.log("✏️ Purchases API: Update request", { id, data })
-    const response = await api.put<Purchase>(`/purchases/${id}`, data)
+    const response = await api.put<Purchase>(`/api/v1/purchases/${id}`, data)
     return response.data
   },
 
   confirm: async (id: string): Promise<Purchase> => {
     console.log("✅ Purchases API: Confirm request", { id })
-    const response = await api.post<Purchase>(`/purchases/${id}/confirm`)
+    const response = await api.post<Purchase>(`/api/v1/purchases/${id}/confirm`)
     return response.data
   },
 }

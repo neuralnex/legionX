@@ -68,16 +68,13 @@ const AgentCard = (props: AgentCardProps) => {
     : {
         id: props.listing?.id || "unknown",
         title: props.listing?.title || "Untitled Agent",
-        creator: props.listing?.seller?.username || "Unknown Creator",
-        price: props.listing?.price ? `${props.listing.price.toFixed(2)} ADA` : "0.00 ADA",
-        image:
-          props.listing?.images && Array.isArray(props.listing.images) && props.listing.images.length > 0
-            ? props.listing.images[0]
-            : "/placeholder.svg?height=400&width=400",
+        creator: props.listing?.seller?.name || props.listing?.seller?.email || "Unknown Creator",
+        price: props.listing?.price ? `${parseFloat(props.listing.price).toFixed(2)} ADA` : "0.00 ADA",
+        image: "/placeholder.svg?height=400&width=400", // Use placeholder since images field doesn't exist
         likes: 0, // This would come from backend
         isPremium: props.listing?.isPremium || false,
-        features: props.listing?.features && Array.isArray(props.listing.features) ? props.listing.features : [],
-        type: props.listing?.type || "ai-agent",
+        features: props.listing?.modelMetadata?.tags || [],
+        type: props.listing?.agent?.name || "ai-agent",
       }
 
   const [likeCount, setLikeCount] = useState(data.likes)
@@ -135,7 +132,7 @@ const AgentCard = (props: AgentCardProps) => {
             </div>
             {data.features && data.features.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
-                {data.features.slice(0, 2).map((feature, index) => (
+                {data.features.slice(0, 2).map((feature: string, index: number) => (
                   <span key={index} className="bg-gray-800 text-gray-300 px-2 py-1 rounded text-xs">
                     {feature}
                   </span>

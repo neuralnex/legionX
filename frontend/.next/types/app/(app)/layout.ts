@@ -1,4 +1,4 @@
-// File: /home/inspiuser/Desktop/Work/legionX/frontend/app/(app)/layout.tsx
+// File: C:\Users\Nexus\legionX\frontend\app\(app)\layout.tsx
 import * as entry from '../../../../app/(app)/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
