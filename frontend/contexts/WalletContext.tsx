@@ -13,20 +13,7 @@ type WalletContextType = {
   isConnected: boolean
   availableWallets: string[]
   isLoadingWalletData: boolean
-  isMobile: boolean
   connectWallet: (walletName: string, walletApi?: any) => Promise<void>
-  connectMobileWallet: (walletName: string) => Promise<{ 
-    walletName: string; 
-    sessionId: string; 
-    connectionUrl: string; 
-    connectionData: { 
-      name: string; 
-      url: string; 
-      icon: string; 
-      description: string; 
-      sessionId: string; 
-    }; 
-  }>
   disconnectWallet: () => void
   setAddress: (address: string) => void
   setIsConnected: (connected: boolean) => void
@@ -52,63 +39,6 @@ const hexToBech32 = (hexAddress: string, networkId: number = 0): string | null =
 
 const WALLET_STORAGE_KEY = 'legionx_wallet_info';
 
-// Mobile wallet deep link configurations
-const MOBILE_WALLET_CONFIGS = {
-  eternl: {
-    name: 'Eternl',
-    deepLink: 'eternl://',
-    universalLink: 'https://eternl.io/app',
-    qrCodePrefix: 'eternl://'
-  },
-  yoroi: {
-    name: 'Yoroi',
-    deepLink: 'yoroi://',
-    universalLink: 'https://yoroi-wallet.com',
-    qrCodePrefix: 'yoroi://'
-  },
-  flint: {
-    name: 'Flint',
-    deepLink: 'flint://',
-    universalLink: 'https://flint-wallet.com',
-    qrCodePrefix: 'flint://'
-  },
-  nami: {
-    name: 'Nami',
-    deepLink: 'nami://',
-    universalLink: 'https://namiwallet.io',
-    qrCodePrefix: 'nami://'
-  },
-  typhon: {
-    name: 'Typhon',
-    deepLink: 'typhon://',
-    universalLink: 'https://typhonwallet.io',
-    qrCodePrefix: 'typhon://'
-  },
-  gerowallet: {
-    name: 'GeroWallet',
-    deepLink: 'gerowallet://',
-    universalLink: 'https://gerowallet.io',
-    qrCodePrefix: 'gerowallet://'
-  }
-};
-
-// Check if device is mobile
-const isMobileDevice = (): boolean => {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-};
-
-// Check if mobile wallet is installed
-const isMobileWalletInstalled = (walletName: string): boolean => {
-  if (!isMobileDevice()) return false;
-  
-  const config = MOBILE_WALLET_CONFIGS[walletName as keyof typeof MOBILE_WALLET_CONFIGS];
-  if (!config) return false;
-
-  // For mobile devices, assume wallet might be available
-  // Don't try to detect by opening the app automatically
-  return true;
-};
-
 export function WalletProvider({ children }: { children: ReactNode }) {
   const {
     wallet,
@@ -128,12 +58,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [customWallet, setCustomWallet] = useState<any>(null)
   const [isLoadingWalletData, setIsLoadingWalletData] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-
-  // Check if device is mobile on mount
-  useEffect(() => {
-    setIsMobile(isMobileDevice());
-  }, []);
 
   // Check for available wallets on mount
   useEffect(() => {
@@ -150,15 +74,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (window.cardano?.nufi) wallets.push("nufi")
       if (window.cardano?.lace) wallets.push("lace")
 
-      // Add mobile wallets if on mobile device
-      if (isMobile) {
-        Object.keys(MOBILE_WALLET_CONFIGS).forEach(walletName => {
-          if (isMobileWalletInstalled(walletName)) {
-            wallets.push(walletName);
-          }
-        });
-      }
-
       setAvailableWallets(wallets)
     }
 
@@ -167,7 +82,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const timer = setTimeout(checkAvailableWallets, 1000)
 
     return () => clearTimeout(timer)
-  }, [isMobile])
+  }, [])
 
   // Use custom wallet if available, otherwise use library wallet
   const activeWallet = customWallet || wallet
@@ -218,93 +133,47 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             console.log("📭 Getting unused addresses...")
             const unusedAddresses = await activeWallet.getUnusedAddresses()
             console.log("📭 Unused addresses result:", unusedAddresses)
-            setUnusedAddresses(unusedAddresses[0])
+
+            if (unusedAddresses && unusedAddresses.length > 0) {
+              const convertedAddresses = unusedAddresses.map((hex: string) => hexToBech32(hex, 0)).filter((a: string | null): a is string => !!a)
+              setUnusedAddresses(convertedAddresses)
+              console.log("✅ Unused addresses converted and set:", convertedAddresses)
+            }
           } catch (error) {
             console.error("❌ Error getting unused addresses:", error)
           }
 
-          // Only try to get regular address if reward address failed
-          if (!rewardAddresses || rewardAddresses.length === 0) {
-            console.log("⚠️ No reward address found, trying regular address methods...")
-
-            try {
-              console.log("📍 Trying getUsedAddresses as fallback...")
-              const usedAddresses = await activeWallet.getUsedAddresses()
-              console.log("📍 Used addresses:", usedAddresses)
-              if (usedAddresses && usedAddresses.length > 0) {
-                console.log("✅ Setting address from getUsedAddresses:", usedAddresses[0])
-                setAddress(usedAddresses[0])
-              }
-            } catch (error) {
-              console.error("❌ getUsedAddresses failed:", error)
-            }
-
-            if (!address) {
-              try {
-                console.log("📍 Trying getChangeAddress as final fallback...")
-                const changeAddress = await activeWallet.getChangeAddress()
-                console.log("📍 Change address:", changeAddress)
-                if (changeAddress) {
-                  console.log("✅ Setting address from getChangeAddress:", changeAddress)
-                  setAddress(changeAddress)
-                }
-              } catch (error) {
-                console.error("❌ getChangeAddress failed:", error)
-              }
-            }
-          }
-
           setIsLoadingWalletData(false)
+          setIsConnected(true)
+          console.log("✅ Library wallet data extraction completed")
         })()
-      }
-    } else {
-      // Only reset state if we actually had a wallet before
-      if (address || balance || rewardAddresses || unusedAddresses) {
-        console.log("❌ No active wallet, resetting state...")
-        setAddress(undefined)
-        setBalance(undefined)
-        setRewardAddresses(undefined)
-        setUnusedAddresses(undefined)
-        setIsLoadingWalletData(false)
       }
     }
   }, [activeWallet, customWallet])
 
   const handleCustomWalletData = async (walletApi: any, walletName?: string) => {
     try {
-      console.log("🔍 Extracting wallet data from custom wallet API...")
+      console.log('🔧 Starting custom wallet data extraction...')
+      
+      // Get network ID
+      const networkId = await walletApi.getNetworkId()
+      console.log('🌐 Network ID:', networkId)
 
-      const networkId = await walletApi.getNetworkId();
+      // Get reward addresses (priority for authentication)
+      console.log('🎁 Getting reward addresses...')
+      const rewardHexAddresses = await walletApi.getRewardAddresses()
+      const rewardAddresses = rewardHexAddresses?.map((hex: string) => hexToBech32(hex, networkId)).filter((a: string | null): a is string => !!a)
+      
+      if (rewardAddresses && rewardAddresses.length > 0) {
+        setRewardAddresses(rewardAddresses[0])
+        console.log('🎁 Reward addresses:', rewardAddresses)
 
-      console.log('📍 Getting used addresses (payment addresses for authentication)...');
-      const usedHexAddresses = await walletApi.getUsedAddresses();
-      console.log('📍 Used hex addresses:', usedHexAddresses);
-      const usedAddresses = usedHexAddresses?.map((hex: string) => hexToBech32(hex, networkId)).filter((a: string | null): a is string => !!a);
-      console.log('📍 Used bech32 addresses:', usedAddresses);
-
-      let authAddress: string | undefined;
-      if (usedAddresses && usedAddresses.length > 0) {
-        authAddress = usedAddresses[0];
-        console.log('✅ Using payment address for authentication:', authAddress);
-      } else {
-        console.log('⚠️ No used addresses found, falling back to reward address for auth.');
-        const rewardHexAddresses = await walletApi.getRewardAddresses();
-        console.log('📍 Reward hex addresses:', rewardHexAddresses);
-        const rewardAddresses = rewardHexAddresses?.map((hex: string) => hexToBech32(hex, networkId)).filter((a: string | null): a is string => !!a);
-        console.log('📍 Reward bech32 addresses:', rewardAddresses);
-        if (rewardAddresses && rewardAddresses.length > 0) {
-          authAddress = rewardAddresses[0];
-          console.log('✅ Using reward address for authentication:', authAddress);
-        } else {
-          console.error('❌ No payment or reward addresses found for authentication.');
-        }
-      }
-
-      if (authAddress) {
-        setAddress(authAddress);
-        setIsConnected(true);
-        if (walletName) persistWalletInfo(walletName, authAddress);
-        console.log('✅ Final wallet address for authentication:', authAddress);
+        // Use reward address as the primary address for authentication
+        const authAddress = rewardAddresses[0]
+        setAddress(authAddress)
+        setIsConnected(true)
+        if (walletName) persistWalletInfo(walletName, authAddress)
+        console.log('✅ Final wallet address for authentication:', authAddress)
       }
       
       console.log('💰 Getting wallet balance...');
@@ -343,61 +212,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error(`❌ Error connecting to ${walletName}:`, error)
       throw error
-    }
-  }
-
-  const handleConnectMobileWallet = async (walletName: string) => {
-    try {
-      console.log(`📱 Preparing mobile wallet connection for ${walletName}...`)
-      
-      const config = MOBILE_WALLET_CONFIGS[walletName as keyof typeof MOBILE_WALLET_CONFIGS];
-      if (!config) {
-        throw new Error(`Unsupported mobile wallet: ${walletName}`);
-      }
-
-      // Generate a unique session ID for this connection
-      const sessionId = `legionx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Create connection data for mobile wallet
-      const connectionData = {
-        name: 'LegionX',
-        url: window.location.origin,
-        icon: `${window.location.origin}/placeholder-logo.png`,
-        description: 'AI Model Marketplace',
-        sessionId: sessionId
-      };
-
-      // Create a simple connection URL that mobile wallets can handle
-      const connectionUrl = `${config.deepLink}connect?${new URLSearchParams({
-        name: connectionData.name,
-        url: connectionData.url,
-        icon: connectionData.icon,
-        description: connectionData.description,
-        sessionId: sessionId
-      }).toString()}`;
-
-      // Store the connection data for the UI to use
-      localStorage.setItem('mobile_wallet_connection', JSON.stringify({
-        wallet: walletName,
-        sessionId,
-        connectionUrl,
-        config,
-        connectionData,
-        timestamp: Date.now()
-      }));
-
-      console.log(`✅ Mobile wallet ${walletName} connection data prepared`);
-      
-      // Return the connection data for QR code generation
-      return {
-        walletName,
-        sessionId,
-        connectionUrl,
-        connectionData
-      };
-    } catch (error) {
-      console.error(`❌ Error preparing mobile wallet connection for ${walletName}:`, error);
-      throw error;
     }
   }
 
@@ -474,9 +288,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     isConnected,
     availableWallets,
     isLoadingWalletData,
-    isMobile,
     connectWallet: handleConnectWallet,
-    connectMobileWallet: handleConnectMobileWallet,
     disconnectWallet: handleDisconnectWallet,
     setAddress,
     setIsConnected,

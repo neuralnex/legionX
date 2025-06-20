@@ -55,7 +55,6 @@
     "lucide-react": "^0.454.0",
     "next": "15.2.4",
     "next-themes": "latest",
-    "qrcode": "^1.5.4",
     "react": "^19",
     "react-day-picker": "8.10.1",
     "react-dom": "^19",
@@ -75,7 +74,6 @@
   },
   "devDependencies": {
     "@types/node": "^22",
-    "@types/qrcode": "^1.5.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "postcss": "^8",
