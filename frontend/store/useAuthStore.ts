@@ -50,6 +50,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       console.log('📝 Auth Store: Login', data);
       const response = await authAPI.loginWithWallet(data);
+      console.log('📦 Auth Store: Received API response:', response);
       if (!response.token) {
         throw new Error('Login failed: No token received from server.');
       }
