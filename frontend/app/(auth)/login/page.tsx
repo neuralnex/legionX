@@ -15,7 +15,7 @@ import {
   Zap,
   Users,
 } from 'lucide-react';
-import CustomWalletConnect from '@/components/wallet/CustomWalletConnect';
+import { CustomWalletConnect } from '@/components/wallet/CustomWalletConnect';
 import { toast } from '@/components/ui/use-toast';
 import axios from 'axios';
 
@@ -36,8 +36,6 @@ export default function Login() {
     disconnectWallet,
     isLoadingWalletData,
   } = useWallet();
-  const [showCustomWalletModal, setShowCustomWalletModal] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
   const [email, setEmail] = useState<string>('');
   const [emailError, setEmailError] = useState<string | null>(null);
 
@@ -176,7 +174,6 @@ export default function Login() {
     setSuccess(null);
     setConnectionStatus('');
     setIsLoading(false);
-    setIsConnecting(false);
     setEmail('');
     setEmailError(null);
     // Safely disconnect the current wallet to allow reconnection
@@ -418,25 +415,7 @@ export default function Login() {
                 </motion.div>
               ) : (
                 <>
-                  <button
-                    onClick={() => setShowCustomWalletModal(true)}
-                    disabled={isConnecting || isLoadingWalletData}
-                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 px-6 rounded-xl font-medium flex items-center justify-center hover:from-purple-700 hover:to-indigo-700 transition-all disabled:opacity-50"
-                  >
-                    {isConnecting || isLoadingWalletData ? (
-                      <>
-                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        {isLoadingWalletData
-                          ? 'Loading wallet...'
-                          : 'Connecting...'}
-                      </>
-                    ) : (
-                      <>
-                        <Wallet className="h-5 w-5 mr-2" />
-                        Connect Wallet
-                      </>
-                    )}
-                  </button>
+                  <CustomWalletConnect />
 
                   <div className="text-center py-4">
                     <p className="text-gray-400 text-sm mb-4">
@@ -461,31 +440,6 @@ export default function Login() {
                 </>
               )}
             </div>
-
-            {/* Custom Wallet Modal */}
-            <CustomWalletConnect
-              isOpen={showCustomWalletModal}
-              onClose={() => setShowCustomWalletModal(false)}
-              onConnect={async (walletName, walletApi) => {
-                console.log(`🔗 Wallet selection: ${walletName}`);
-                setShowCustomWalletModal(false);
-                setIsConnecting(true);
-                setConnectionStatus(`Connecting to ${walletName}...`);
-
-                try {
-                  // Connect the wallet through the context
-                  await connectWallet(walletName, walletApi);
-                  setSuccess(`${walletName} wallet connected successfully!`);
-                  console.log(`✅ ${walletName} connected through context`);
-                } catch (error) {
-                  console.error('❌ Error in wallet connection:', error);
-                  setError(`Failed to connect ${walletName}`);
-                  setConnectionStatus('');
-                } finally {
-                  setIsConnecting(false);
-                }
-              }}
-            />
 
             {/* Terms */}
             <div className="mt-6 text-center text-xs text-gray-500">
