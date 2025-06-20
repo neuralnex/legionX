@@ -15,8 +15,21 @@ type WalletContextType = {
   isLoadingWalletData: boolean
   isMobile: boolean
   connectWallet: (walletName: string, walletApi?: any) => Promise<void>
-  connectMobileWallet: (walletName: string) => Promise<void>
+  connectMobileWallet: (walletName: string) => Promise<{ 
+    walletName: string; 
+    sessionId: string; 
+    connectionUrl: string; 
+    connectionData: { 
+      name: string; 
+      url: string; 
+      icon: string; 
+      description: string; 
+      sessionId: string; 
+    }; 
+  }>
   disconnectWallet: () => void
+  setAddress: (address: string) => void
+  setIsConnected: (connected: boolean) => void
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
@@ -91,18 +104,9 @@ const isMobileWalletInstalled = (walletName: string): boolean => {
   const config = MOBILE_WALLET_CONFIGS[walletName as keyof typeof MOBILE_WALLET_CONFIGS];
   if (!config) return false;
 
-  // Try to detect if the wallet app is installed by attempting to open it
-  try {
-    const testLink = document.createElement('a');
-    testLink.href = config.deepLink;
-    testLink.style.display = 'none';
-    document.body.appendChild(testLink);
-    testLink.click();
-    document.body.removeChild(testLink);
-    return true;
-  } catch {
-    return false;
-  }
+  // For mobile devices, assume wallet might be available
+  // Don't try to detect by opening the app automatically
+  return true;
 };
 
 export function WalletProvider({ children }: { children: ReactNode }) {
@@ -344,54 +348,55 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const handleConnectMobileWallet = async (walletName: string) => {
     try {
-      console.log(`📱 Connecting to mobile wallet ${walletName}...`)
+      console.log(`📱 Preparing mobile wallet connection for ${walletName}...`)
       
       const config = MOBILE_WALLET_CONFIGS[walletName as keyof typeof MOBILE_WALLET_CONFIGS];
       if (!config) {
         throw new Error(`Unsupported mobile wallet: ${walletName}`);
       }
 
+      // Generate a unique session ID for this connection
+      const sessionId = `legionx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
       // Create connection data for mobile wallet
       const connectionData = {
         name: 'LegionX',
         url: window.location.origin,
         icon: `${window.location.origin}/placeholder-logo.png`,
-        description: 'AI Model Marketplace'
+        description: 'AI Model Marketplace',
+        sessionId: sessionId
       };
 
-      // Create deep link URL
-      const deepLinkUrl = `${config.deepLink}connect?${new URLSearchParams({
+      // Create a simple connection URL that mobile wallets can handle
+      const connectionUrl = `${config.deepLink}connect?${new URLSearchParams({
         name: connectionData.name,
         url: connectionData.url,
         icon: connectionData.icon,
-        description: connectionData.description
+        description: connectionData.description,
+        sessionId: sessionId
       }).toString()}`;
 
-      // Try to open mobile wallet
-      console.log(`🔗 Opening mobile wallet with deep link: ${deepLinkUrl}`);
-      
-      // For mobile devices, try deep link first, then fallback to universal link
-      if (isMobile) {
-        try {
-          window.location.href = deepLinkUrl;
-        } catch (error) {
-          console.warn('Deep link failed, trying universal link:', error);
-          window.open(config.universalLink, '_blank');
-        }
-      } else {
-        // For desktop, show QR code or redirect to universal link
-        window.open(config.universalLink, '_blank');
-      }
-
-      // Set a flag to indicate mobile wallet connection attempt
+      // Store the connection data for the UI to use
       localStorage.setItem('mobile_wallet_connection', JSON.stringify({
         wallet: walletName,
+        sessionId,
+        connectionUrl,
+        config,
+        connectionData,
         timestamp: Date.now()
       }));
 
-      console.log(`✅ Mobile wallet ${walletName} connection initiated`);
+      console.log(`✅ Mobile wallet ${walletName} connection data prepared`);
+      
+      // Return the connection data for QR code generation
+      return {
+        walletName,
+        sessionId,
+        connectionUrl,
+        connectionData
+      };
     } catch (error) {
-      console.error(`❌ Error connecting to mobile wallet ${walletName}:`, error);
+      console.error(`❌ Error preparing mobile wallet connection for ${walletName}:`, error);
       throw error;
     }
   }
@@ -473,6 +478,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     connectWallet: handleConnectWallet,
     connectMobileWallet: handleConnectMobileWallet,
     disconnectWallet: handleDisconnectWallet,
+    setAddress,
+    setIsConnected,
   }
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
