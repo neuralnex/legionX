@@ -32,6 +32,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const response = await authAPI.register(data);
 
       localStorage.setItem('token', response.token);
+      localStorage.removeItem('legionx_logout');
       set({
         isAuthenticated: true,
         user: response.user,
@@ -51,6 +52,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const response = await authAPI.loginWithWallet(data);
 
       localStorage.setItem('token', response.token);
+      localStorage.removeItem('legionx_logout');
       set({
         isAuthenticated: true,
         user: response.user,
@@ -81,6 +83,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   logout: () => {
     localStorage.removeItem('token');
+    localStorage.setItem('legionx_logout', 'true');
     set({ isAuthenticated: false, user: null, token: null });
   },
   registerWithWallet: async (email: string, wallet: string) => {
@@ -90,6 +93,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const response = await authAPI.register(data);
 
       localStorage.setItem('token', response.token);
+      localStorage.removeItem('legionx_logout');
       set({
         isAuthenticated: true,
         user: response.user,

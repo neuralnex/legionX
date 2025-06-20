@@ -300,12 +300,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Restore wallet info from localStorage on mount
   useEffect(() => {
     const restoreWallet = async () => {
+      const isLoggedOut = localStorage.getItem('legionx_logout') === 'true';
+      if (isLoggedOut) {
+        // Do not auto-login if user has explicitly logged out
+        setIsConnected(false);
+        setAddress(undefined);
+        return;
+      }
       const stored = localStorage.getItem(WALLET_STORAGE_KEY);
       if (stored) {
         try {
           const { walletName, address } = JSON.parse(stored);
           if (walletName && address) {
-            // Optionally, you could auto-connect to the wallet extension here
             setIsConnected(true);
             setAddress(address);
           }
