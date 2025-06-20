@@ -34,9 +34,13 @@ export interface LinkWalletRequest {
 }
 
 export interface AuthResponse {
-  message: string
-  token: string
-  user: User
+  success: boolean
+  data: {
+    message: string
+    token: string
+    user: User
+  }
+  timestamp: string
 }
 
 // AI Model Metadata (matches backend AIModelMetadata)

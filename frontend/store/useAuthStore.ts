@@ -31,12 +31,12 @@ export const useAuthStore = create<AuthState>((set) => ({
       console.log('📝 Auth Store: Register', data);
       const response = await authAPI.register(data);
 
-      localStorage.setItem('token', response.token);
+      localStorage.setItem('token', response.data.token);
       localStorage.removeItem('legionx_logout');
       set({
         isAuthenticated: true,
-        user: response.user,
-        token: response.token,
+        user: response.data.user,
+        token: response.data.token,
       });
       console.log('✅ Registration successful in store');
     } catch (error: any) {
@@ -50,16 +50,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       console.log('📝 Auth Store: Login', data);
       const response = await authAPI.loginWithWallet(data);
-      console.log('📦 Auth Store: Received API response:', response);
-      if (!response.token) {
+      
+      if (!response.data.token) {
         throw new Error('Login failed: No token received from server.');
       }
-      localStorage.setItem('token', response.token);
+      
+      localStorage.setItem('token', response.data.token);
       localStorage.removeItem('legionx_logout');
       set({
         isAuthenticated: true,
-        user: response.user,
-        token: response.token,
+        user: response.data.user,
+        token: response.data.token,
       });
       console.log('✅ Login successful in store');
     } catch (error: any) {
@@ -72,11 +73,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       console.log('📝 Auth Store: Login with signature', data);
       const response = await authAPI.login(data);
 
-      localStorage.setItem('token', response.token);
+      localStorage.setItem('token', response.data.token);
       set({
         isAuthenticated: true,
-        user: response.user,
-        token: response.token,
+        user: response.data.user,
+        token: response.data.token,
       });
       console.log('✅ Login with signature successful in store');
     } catch (error: any) {
@@ -94,15 +95,15 @@ export const useAuthStore = create<AuthState>((set) => ({
       console.log('📝 Auth Store: Register with wallet', { email, wallet });
       const data: RegisterRequest = { email, wallet };
       const response = await authAPI.register(data);
-      if (!response.token) {
+      if (!response.data.token) {
         throw new Error('Registration failed: No token received from server.');
       }
-      localStorage.setItem('token', response.token);
+      localStorage.setItem('token', response.data.token);
       localStorage.removeItem('legionx_logout');
       set({
         isAuthenticated: true,
-        user: response.user,
-        token: response.token,
+        user: response.data.user,
+        token: response.data.token,
       });
       console.log('✅ Registration successful in store');
     } catch (error: any) {
