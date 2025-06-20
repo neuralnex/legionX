@@ -2,7 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Wallet, X, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Wallet, X, AlertCircle, CheckCircle2, Smartphone, QrCode } from "lucide-react"
+import { useWallet } from "@/contexts/WalletContext"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
 
 interface WalletOption {
   id: string
@@ -17,200 +22,214 @@ interface CustomWalletConnectProps {
   isOpen?: boolean
 }
 
-export default function CustomWalletConnect({ onConnect, onClose, isOpen = true }: CustomWalletConnectProps) {
-  const [wallets, setWallets] = useState<WalletOption[]>([])
-  const [connecting, setConnecting] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+// Mobile wallet configurations
+const MOBILE_WALLETS = [
+  { id: 'eternl', name: 'Eternl', icon: '🔷', color: 'bg-blue-500' },
+  { id: 'yoroi', name: 'Yoroi', icon: '🟡', color: 'bg-yellow-500' },
+  { id: 'flint', name: 'Flint', icon: '🔥', color: 'bg-orange-500' },
+  { id: 'nami', name: 'Nami', icon: '🔵', color: 'bg-blue-600' },
+  { id: 'typhon', name: 'Typhon', icon: '🌪️', color: 'bg-purple-500' },
+  { id: 'gerowallet', name: 'GeroWallet', icon: '🟢', color: 'bg-green-500' }
+];
 
-  useEffect(() => {
-    const checkWallets = () => {
-      const walletOptions: WalletOption[] = [
-        {
-          id: "nami",
-          name: "Nami",
-          icon: "🦎",
-          isInstalled: !!window.cardano?.nami,
-        },
-        {
-          id: "eternl",
-          name: "Eternl",
-          icon: "♾️",
-          isInstalled: !!window.cardano?.eternl,
-        },
-        {
-          id: "flint",
-          name: "Flint",
-          icon: "🔥",
-          isInstalled: !!window.cardano?.flint,
-        },
-        {
-          id: "yoroi",
-          name: "Yoroi",
-          icon: "🌸",
-          isInstalled: !!window.cardano?.yoroi,
-        },
-        {
-          id: "typhon",
-          name: "Typhon",
-          icon: "🌊",
-          isInstalled: !!window.cardano?.typhon,
-        },
-        {
-          id: "gerowallet",
-          name: "Gero Wallet",
-          icon: "🦅",
-          isInstalled: !!window.cardano?.gerowallet,
-        },
-        {
-          id: "nufi",
-          name: "NuFi",
-          icon: "🔮",
-          isInstalled: !!window.cardano?.nufi,
-        },
-        {
-          id: "lace",
-          name: "Lace",
-          icon: "🎭",
-          isInstalled: !!window.cardano?.lace,
-        },
-      ]
+// Desktop wallet configurations
+const DESKTOP_WALLETS = [
+  { id: 'nami', name: 'Nami', icon: '🔵', color: 'bg-blue-600' },
+  { id: 'eternl', name: 'Eternl', icon: '🔷', color: 'bg-blue-500' },
+  { id: 'flint', name: 'Flint', icon: '🔥', color: 'bg-orange-500' },
+  { id: 'yoroi', name: 'Yoroi', icon: '🟡', color: 'bg-yellow-500' },
+  { id: 'typhon', name: 'Typhon', icon: '🌪️', color: 'bg-purple-500' },
+  { id: 'gerowallet', name: 'GeroWallet', icon: '🟢', color: 'bg-green-500' },
+  { id: 'nufi', name: 'NuFi', icon: '🟣', color: 'bg-purple-600' },
+  { id: 'lace', name: 'Lace', icon: '💎', color: 'bg-indigo-500' }
+];
 
-      setWallets(walletOptions)
-    }
+export function CustomWalletConnect() {
+  const { 
+    isConnected, 
+    address, 
+    availableWallets, 
+    isLoadingWalletData, 
+    connectWallet, 
+    connectMobileWallet,
+    disconnectWallet,
+    isMobile 
+  } = useWallet()
 
-    checkWallets()
-    // Check again after a delay for wallets that load slowly
-    const timer = setTimeout(checkWallets, 1000)
-    return () => clearTimeout(timer)
-  }, [])
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [showQRCode, setShowQRCode] = useState(false)
+  const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
 
-  const handleConnect = async (walletId: string) => {
-    setConnecting(walletId)
-    setError(null)
-
+  const handleWalletConnect = async (walletName: string) => {
+    setIsConnecting(true)
     try {
-      // Type-safe access to wallet API
-      const walletApi = walletId in (window.cardano || {}) ? window.cardano?.[walletId as keyof typeof window.cardano] : undefined
-      if (!walletApi) {
-        throw new Error(`${walletId} wallet not found`)
+      if (isMobile && MOBILE_WALLETS.find(w => w.id === walletName)) {
+        await connectMobileWallet(walletName)
+      } else {
+        await connectWallet(walletName)
       }
-
-      // Enable the wallet
-      const api = await walletApi.enable()
-      console.log(`Connected to ${walletId}:`, api)
-
-      // Call the onConnect callback with the wallet API instead of just the name
-      onConnect?.(walletId, api)
-    } catch (err: any) {
-      console.error(`Error connecting to ${walletId}:`, err)
-      setError(err.message || `Failed to connect to ${walletId}`)
+    } catch (error) {
+      console.error('Failed to connect wallet:', error)
     } finally {
-      setConnecting(null)
+      setIsConnecting(false)
     }
   }
 
-  const installedWallets = wallets.filter((w) => w.isInstalled)
-  const notInstalledWallets = wallets.filter((w) => !w.isInstalled)
+  const handleMobileWalletConnect = async (walletName: string) => {
+    setIsConnecting(true)
+    try {
+      await connectMobileWallet(walletName)
+      setSelectedWallet(walletName)
+      setShowQRCode(true)
+    } catch (error) {
+      console.error('Failed to connect mobile wallet:', error)
+    } finally {
+      setIsConnecting(false)
+    }
+  }
 
-  if (!isOpen) return null
+  const generateQRCodeData = (walletName: string) => {
+    const config = {
+      name: 'LegionX',
+      url: window.location.origin,
+      icon: `${window.location.origin}/placeholder-logo.png`,
+      description: 'AI Model Marketplace'
+    };
+
+    return JSON.stringify({
+      type: 'wallet-connect',
+      wallet: walletName,
+      ...config
+    });
+  };
+
+  if (isConnected && address) {
+    return (
+      <div className="flex items-center gap-4">
+        <div className="text-sm">
+          <div className="font-medium">Connected</div>
+          <div className="text-muted-foreground">
+            {address.slice(0, 8)}...{address.slice(-8)}
+          </div>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={disconnectWallet}
+          disabled={isLoadingWalletData}
+        >
+          Disconnect
+        </Button>
+      </div>
+    )
+  }
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-white">Connect Wallet</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-white p-1">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" disabled={isConnecting}>
+          <Wallet className="mr-2 h-4 w-4" />
+          {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Connect Wallet</DialogTitle>
+          <DialogDescription>
+            Choose your preferred Cardano wallet to connect to LegionX
+          </DialogDescription>
+        </DialogHeader>
 
-          {error && (
-            <div className="bg-red-900/30 border border-red-800 text-red-300 px-4 py-3 rounded-md text-sm flex items-center mb-4">
-              <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-              {error}
+        <div className="space-y-4">
+          {/* Mobile Wallets Section */}
+          {isMobile && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Smartphone className="h-4 w-4" />
+                <h3 className="font-medium">Mobile Wallets</h3>
+                <Badge variant="secondary">Mobile</Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {MOBILE_WALLETS.map((wallet) => (
+                  <Button
+                    key={wallet.id}
+                    variant="outline"
+                    className="h-auto p-3 flex flex-col items-center gap-2"
+                    onClick={() => handleMobileWalletConnect(wallet.id)}
+                    disabled={isConnecting || !availableWallets.includes(wallet.id)}
+                  >
+                    <span className="text-lg">{wallet.icon}</span>
+                    <span className="text-xs font-medium">{wallet.name}</span>
+                  </Button>
+                ))}
+              </div>
             </div>
           )}
 
-          <div className="space-y-3">
-            {installedWallets.length > 0 ? (
-              <>
-                <h3 className="text-sm font-medium text-gray-300 mb-3">Available Wallets</h3>
-                {installedWallets.map((wallet) => (
-                  <button
-                    key={wallet.id}
-                    onClick={() => handleConnect(wallet.id)}
-                    disabled={connecting === wallet.id}
-                    className="w-full flex items-center justify-between p-4 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 transition-colors disabled:opacity-50"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <span className="text-2xl">{wallet.icon}</span>
-                      <span className="font-medium text-white">{wallet.name}</span>
-                    </div>
-                    {connecting === wallet.id ? (
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500"></div>
-                    ) : (
-                      <CheckCircle2 className="h-5 w-5 text-green-500" />
-                    )}
-                  </button>
-                ))}
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <Wallet className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                <p className="text-gray-400 mb-4">No Cardano wallets detected</p>
-                <p className="text-sm text-gray-500">Please install a Cardano wallet to continue</p>
-              </div>
-            )}
+          {/* Desktop Wallets Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Wallet className="h-4 w-4" />
+              <h3 className="font-medium">Desktop Wallets</h3>
+              <Badge variant="secondary">Browser</Badge>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {DESKTOP_WALLETS.map((wallet) => (
+                <Button
+                  key={wallet.id}
+                  variant="outline"
+                  className="h-auto p-3 flex flex-col items-center gap-2"
+                  onClick={() => handleWalletConnect(wallet.id)}
+                  disabled={isConnecting || !availableWallets.includes(wallet.id)}
+                >
+                  <span className="text-lg">{wallet.icon}</span>
+                  <span className="text-xs font-medium">{wallet.name}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
 
-            {notInstalledWallets.length > 0 && (
-              <>
-                <h3 className="text-sm font-medium text-gray-400 mb-3 mt-6">Install a Wallet</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {notInstalledWallets.slice(0, 4).map((wallet) => (
-                    <a
-                      key={wallet.id}
-                      href={getWalletDownloadUrl(wallet.id)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center space-x-2 p-3 bg-gray-800/50 hover:bg-gray-800 rounded-lg border border-gray-700 transition-colors text-sm"
-                    >
-                      <span className="text-lg">{wallet.icon}</span>
-                      <span className="text-gray-300">{wallet.name}</span>
-                    </a>
-                  ))}
+          {/* Mobile Connection Instructions */}
+          {isMobile && (
+            <Card className="bg-muted/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Smartphone className="h-4 w-4" />
+                  Mobile Connection
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-xs text-muted-foreground">
+                  Tap a mobile wallet above to open it directly. If the wallet isn't installed, 
+                  you'll be redirected to download it.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* QR Code Dialog for Desktop */}
+          <Dialog open={showQRCode && !isMobile} onOpenChange={setShowQRCode}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Connect {selectedWallet}</DialogTitle>
+                <DialogDescription>
+                  Scan this QR code with your mobile wallet
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col items-center gap-4">
+                <div className="p-4 border rounded-lg">
+                  <QrCode className="h-32 w-32" />
+                  {/* TODO: Add actual QR code generation */}
                 </div>
-              </>
-            )}
-          </div>
-
-          <div className="mt-6 text-center text-xs text-gray-500">
-            <p>By connecting your wallet, you agree to our</p>
-            <p className="mt-1">
-              <a href="#" className="text-purple-400 hover:text-purple-300">
-                Terms of Service
-              </a>
-              {" and "}
-              <a href="#" className="text-purple-400 hover:text-purple-300">
-                Privacy Policy
-              </a>
-            </p>
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+                <p className="text-sm text-muted-foreground text-center">
+                  Open {selectedWallet} on your mobile device and scan this QR code to connect
+                </p>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

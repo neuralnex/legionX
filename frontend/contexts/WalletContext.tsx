@@ -13,7 +13,9 @@ type WalletContextType = {
   isConnected: boolean
   availableWallets: string[]
   isLoadingWalletData: boolean
+  isMobile: boolean
   connectWallet: (walletName: string, walletApi?: any) => Promise<void>
+  connectMobileWallet: (walletName: string) => Promise<void>
   disconnectWallet: () => void
 }
 
@@ -37,6 +39,72 @@ const hexToBech32 = (hexAddress: string, networkId: number = 0): string | null =
 
 const WALLET_STORAGE_KEY = 'legionx_wallet_info';
 
+// Mobile wallet deep link configurations
+const MOBILE_WALLET_CONFIGS = {
+  eternl: {
+    name: 'Eternl',
+    deepLink: 'eternl://',
+    universalLink: 'https://eternl.io/app',
+    qrCodePrefix: 'eternl://'
+  },
+  yoroi: {
+    name: 'Yoroi',
+    deepLink: 'yoroi://',
+    universalLink: 'https://yoroi-wallet.com',
+    qrCodePrefix: 'yoroi://'
+  },
+  flint: {
+    name: 'Flint',
+    deepLink: 'flint://',
+    universalLink: 'https://flint-wallet.com',
+    qrCodePrefix: 'flint://'
+  },
+  nami: {
+    name: 'Nami',
+    deepLink: 'nami://',
+    universalLink: 'https://namiwallet.io',
+    qrCodePrefix: 'nami://'
+  },
+  typhon: {
+    name: 'Typhon',
+    deepLink: 'typhon://',
+    universalLink: 'https://typhonwallet.io',
+    qrCodePrefix: 'typhon://'
+  },
+  gerowallet: {
+    name: 'GeroWallet',
+    deepLink: 'gerowallet://',
+    universalLink: 'https://gerowallet.io',
+    qrCodePrefix: 'gerowallet://'
+  }
+};
+
+// Check if device is mobile
+const isMobileDevice = (): boolean => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
+// Check if mobile wallet is installed
+const isMobileWalletInstalled = (walletName: string): boolean => {
+  if (!isMobileDevice()) return false;
+  
+  const config = MOBILE_WALLET_CONFIGS[walletName as keyof typeof MOBILE_WALLET_CONFIGS];
+  if (!config) return false;
+
+  // Try to detect if the wallet app is installed by attempting to open it
+  try {
+    const testLink = document.createElement('a');
+    testLink.href = config.deepLink;
+    testLink.style.display = 'none';
+    document.body.appendChild(testLink);
+    testLink.click();
+    document.body.removeChild(testLink);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const {
     wallet,
@@ -56,6 +124,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [customWallet, setCustomWallet] = useState<any>(null)
   const [isLoadingWalletData, setIsLoadingWalletData] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Check if device is mobile on mount
+  useEffect(() => {
+    setIsMobile(isMobileDevice());
+  }, []);
 
   // Check for available wallets on mount
   useEffect(() => {
@@ -72,6 +146,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (window.cardano?.nufi) wallets.push("nufi")
       if (window.cardano?.lace) wallets.push("lace")
 
+      // Add mobile wallets if on mobile device
+      if (isMobile) {
+        Object.keys(MOBILE_WALLET_CONFIGS).forEach(walletName => {
+          if (isMobileWalletInstalled(walletName)) {
+            wallets.push(walletName);
+          }
+        });
+      }
+
       setAvailableWallets(wallets)
     }
 
@@ -80,7 +163,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const timer = setTimeout(checkAvailableWallets, 1000)
 
     return () => clearTimeout(timer)
-  }, [])
+  }, [isMobile])
 
   // Use custom wallet if available, otherwise use library wallet
   const activeWallet = customWallet || wallet
@@ -259,6 +342,60 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const handleConnectMobileWallet = async (walletName: string) => {
+    try {
+      console.log(`📱 Connecting to mobile wallet ${walletName}...`)
+      
+      const config = MOBILE_WALLET_CONFIGS[walletName as keyof typeof MOBILE_WALLET_CONFIGS];
+      if (!config) {
+        throw new Error(`Unsupported mobile wallet: ${walletName}`);
+      }
+
+      // Create connection data for mobile wallet
+      const connectionData = {
+        name: 'LegionX',
+        url: window.location.origin,
+        icon: `${window.location.origin}/placeholder-logo.png`,
+        description: 'AI Model Marketplace'
+      };
+
+      // Create deep link URL
+      const deepLinkUrl = `${config.deepLink}connect?${new URLSearchParams({
+        name: connectionData.name,
+        url: connectionData.url,
+        icon: connectionData.icon,
+        description: connectionData.description
+      }).toString()}`;
+
+      // Try to open mobile wallet
+      console.log(`🔗 Opening mobile wallet with deep link: ${deepLinkUrl}`);
+      
+      // For mobile devices, try deep link first, then fallback to universal link
+      if (isMobile) {
+        try {
+          window.location.href = deepLinkUrl;
+        } catch (error) {
+          console.warn('Deep link failed, trying universal link:', error);
+          window.open(config.universalLink, '_blank');
+        }
+      } else {
+        // For desktop, show QR code or redirect to universal link
+        window.open(config.universalLink, '_blank');
+      }
+
+      // Set a flag to indicate mobile wallet connection attempt
+      localStorage.setItem('mobile_wallet_connection', JSON.stringify({
+        wallet: walletName,
+        timestamp: Date.now()
+      }));
+
+      console.log(`✅ Mobile wallet ${walletName} connection initiated`);
+    } catch (error) {
+      console.error(`❌ Error connecting to mobile wallet ${walletName}:`, error);
+      throw error;
+    }
+  }
+
   const handleDisconnectWallet = () => {
     console.log("🔌 Disconnecting wallet...")
 
@@ -332,7 +469,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     isConnected,
     availableWallets,
     isLoadingWalletData,
+    isMobile,
     connectWallet: handleConnectWallet,
+    connectMobileWallet: handleConnectMobileWallet,
     disconnectWallet: handleDisconnectWallet,
   }
 
