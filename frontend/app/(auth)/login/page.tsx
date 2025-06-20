@@ -125,8 +125,14 @@ export default function Login() {
         console.log('🔑 Attempting login with reward address...');
         setConnectionStatus('Logging in...');
         await login({ wallet: address });
-        setSuccess('Successfully logged in with wallet!');
-        console.log('✅ Login successful!');
+        setSuccess(
+          'Successfully logged in! Redirecting to marketplace...'
+        );
+        console.log('✅ Authentication successful, wallet state:', {
+          isConnected,
+          address,
+          authMode
+        });
       } else {
         console.log(
           '📝 Attempting registration with email and reward address...'
@@ -134,15 +140,48 @@ export default function Login() {
         console.log('📧 Using email:', email);
         setConnectionStatus('Creating account...');
         await registerWithWallet(email, address);
-        setSuccess('Account created successfully!');
-        console.log('✅ Registration successful!');
+        setSuccess(
+          'Account created successfully! Redirecting to marketplace...'
+        );
+        console.log('✅ Authentication successful, wallet state:', {
+          isConnected,
+          address,
+          authMode
+        });
       }
 
       setConnectionStatus('Redirecting...');
-      setTimeout(() => router.push('/marketplace'), 1500);
+      
+      // Add debugging to understand wallet state after successful auth
+      console.log('✅ Authentication successful, wallet state:', {
+        isConnected,
+        address,
+        authMode
+      });
+      
+      // Give more time for wallet state to stabilize before redirect
+      setTimeout(() => {
+        console.log('🔄 Redirecting to marketplace, final wallet state:', {
+          isConnected,
+          address
+        });
+        router.push('/marketplace');
+      }, 2000);
     } catch (error: any) {
       console.error('❌ Authentication error:', error);
       setConnectionStatus('');
+
+      // Disconnect wallet on errors
+      try {
+        if (isConnected) {
+          disconnectWallet();
+        }
+      } catch (disconnectError) {
+        console.warn(
+          '⚠️ Wallet disconnect failed during cleanup:',
+          disconnectError
+        );
+      }
 
       // Check for 401 Unauthorized (user doesn't exist) or specific error messages
       if (
@@ -166,17 +205,6 @@ export default function Login() {
       }
     } finally {
       setIsLoading(false);
-      // Safely disconnect the current wallet to allow reconnection
-      try {
-        if (isConnected) {
-          disconnectWallet();
-        }
-      } catch (disconnectError) {
-        console.warn(
-          '⚠️ Wallet disconnect failed during cleanup:',
-          disconnectError
-        );
-      }
     }
   };
 

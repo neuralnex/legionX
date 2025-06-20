@@ -150,13 +150,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         })()
       }
     } else {
-      // Reset state when wallet disconnects
-      console.log("❌ No active wallet, resetting state...")
-      setAddress(undefined)
-      setBalance(undefined)
-      setRewardAddresses(undefined)
-      setUnusedAddresses(undefined)
-      setIsLoadingWalletData(false)
+      // Only reset state if we actually had a wallet before
+      if (address || balance || rewardAddresses || unusedAddresses) {
+        console.log("❌ No active wallet, resetting state...")
+        setAddress(undefined)
+        setBalance(undefined)
+        setRewardAddresses(undefined)
+        setUnusedAddresses(undefined)
+        setIsLoadingWalletData(false)
+      }
     }
   }, [activeWallet, customWallet])
 
