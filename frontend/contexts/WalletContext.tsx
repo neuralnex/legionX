@@ -1,6 +1,8 @@
 "use client"
 import { useState, useEffect, createContext, useContext, type ReactNode } from "react"
 import { useConnectWallet, type EnabledWallet } from "@newm.io/cardano-dapp-wallet-connector"
+import * as CSL from '@emurgo/cardano-serialization-lib-asmjs';
+import { Buffer } from 'buffer';
 
 type WalletContextType = {
   wallet: EnabledWallet | null
@@ -16,6 +18,22 @@ type WalletContextType = {
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
+
+const hexToBech32 = (hexAddress: string, networkId: number = 0): string | null => {
+  try {
+    const address = CSL.Address.from_bytes(Buffer.from(hexAddress, 'hex'));
+    if (networkId === 0) { // Testnet
+      const testnetAddress = CSL.BaseAddress.from_address(address);
+      if(testnetAddress) {
+        return testnetAddress.to_address().to_bech32("addr_test");
+      }
+    }
+    return address.to_bech32();
+  } catch (e) {
+    console.error('Failed to convert hex to bech32:', e);
+    return null;
+  }
+};
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const {
@@ -166,83 +184,53 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       console.log("🔍 Extracting wallet data from custom wallet API...")
 
-      // Get payment addresses first (priority for authentication)
-      let walletAddress = null
+      const networkId = await walletApi.getNetworkId();
 
-      try {
-        console.log("📍 Getting used addresses (payment addresses for authentication)...")
-        const usedAddresses = await walletApi.getUsedAddresses()
-        console.log("📍 Used addresses:", usedAddresses)
+      console.log('📍 Getting used addresses (payment addresses for authentication)...');
+      const usedHexAddresses = await walletApi.getUsedAddresses();
+      console.log('📍 Used hex addresses:', usedHexAddresses);
+      const usedAddresses = usedHexAddresses?.map((hex: string) => hexToBech32(hex, networkId)).filter((a: string | null): a is string => !!a);
+      console.log('📍 Used bech32 addresses:', usedAddresses);
 
-        if (usedAddresses && usedAddresses.length > 0) {
-          walletAddress = usedAddresses[0]
-          console.log("✅ Using payment address for authentication:", walletAddress)
-        }
-      } catch (error) {
-        console.error("❌ Error getting used addresses:", error)
-      }
-
-      // Only try reward addresses if payment addresses failed
-      if (!walletAddress) {
-        console.log("⚠️ No payment address found, trying reward addresses...")
-
-        try {
-          console.log("🎁 Getting reward addresses...")
-          const rewardAddresses = await walletApi.getRewardAddresses()
-          console.log("🎁 Reward addresses:", rewardAddresses)
-
-          if (rewardAddresses && rewardAddresses.length > 0) {
-            setRewardAddresses(rewardAddresses[0])
-            walletAddress = rewardAddresses[0]
-            console.log("✅ Using reward address as fallback:", walletAddress)
-          }
-        } catch (error) {
-          console.log("⚠️ getRewardAddresses failed:", error)
-          try {
-            console.log("📍 Trying getChangeAddress...")
-            const changeAddress = await walletApi.getChangeAddress()
-            console.log("📍 Change address:", changeAddress)
-            walletAddress = changeAddress
-          } catch (error2) {
-            console.log("⚠️ getChangeAddress failed:", error2)
-          }
-        }
-      }
-
-      if (walletAddress) {
-        console.log("✅ Final wallet address for authentication:", walletAddress)
-        setAddress(walletAddress)
+      let authAddress: string | undefined;
+      if (usedAddresses && usedAddresses.length > 0) {
+        authAddress = usedAddresses[0];
+        console.log('✅ Using payment address for authentication:', authAddress);
       } else {
-        console.error("❌ Could not extract any wallet address")
-      }
-
-      // Get balance
-      try {
-        console.log("💰 Getting wallet balance...")
-        const balance = await walletApi.getBalance()
-        console.log("💰 Balance:", balance)
-        setBalance(balance)
-      } catch (error) {
-        console.error("❌ Error getting balance:", error)
-      }
-
-      // Get unused addresses
-      try {
-        console.log("📭 Getting unused addresses...")
-        const unusedAddresses = await walletApi.getUnusedAddresses()
-        console.log("📭 Unused addresses:", unusedAddresses)
-        if (unusedAddresses && unusedAddresses.length > 0) {
-          setUnusedAddresses(unusedAddresses[0])
+        console.log('⚠️ No used addresses found, falling back to reward address for auth.');
+        const rewardHexAddresses = await walletApi.getRewardAddresses();
+        console.log('📍 Reward hex addresses:', rewardHexAddresses);
+        const rewardAddresses = rewardHexAddresses?.map((hex: string) => hexToBech32(hex, networkId)).filter((a: string | null): a is string => !!a);
+        console.log('📍 Reward bech32 addresses:', rewardAddresses);
+        if (rewardAddresses && rewardAddresses.length > 0) {
+          authAddress = rewardAddresses[0];
+          console.log('✅ Using reward address for authentication:', authAddress);
+        } else {
+          console.error('❌ No payment or reward addresses found for authentication.');
         }
-      } catch (error) {
-        console.error("❌ Error getting unused addresses:", error)
       }
 
-      console.log("✅ Custom wallet data extraction completed")
+      if (authAddress) {
+        setAddress(authAddress);
+        console.log('✅ Final wallet address for authentication:', authAddress);
+      }
+      
+      console.log('💰 Getting wallet balance...');
+      const balance = await walletApi.getBalance();
+      setBalance(balance);
+      console.log('💰 Balance:', balance);
+
+      console.log('📭 Getting unused addresses...');
+      const unusedHexAddresses = await walletApi.getUnusedAddresses();
+      const unusedAddresses = unusedHexAddresses?.map((hex: string) => hexToBech32(hex, networkId)).filter((a: string | null): a is string => !!a);
+      setRewardAddresses(unusedAddresses?.[0]);
+      console.log('📭 Unused addresses:', unusedAddresses);
+
+      console.log('✅ Custom wallet data extraction completed');
     } catch (error) {
-      console.error("❌ Error handling custom wallet data:", error)
+      console.error('❌ Error handling custom wallet data:', error);
     } finally {
-      setIsLoadingWalletData(false)
+      setIsLoadingWalletData(false);
     }
   }
 

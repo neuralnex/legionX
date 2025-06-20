@@ -11,6 +11,9 @@ importers:
       '@emotion/is-prop-valid':
         specifier: latest
         version: 1.3.1
+      '@emurgo/cardano-serialization-lib-asmjs':
+        specifier: ^14.1.2
+        version: 14.1.2
       '@hookform/resolvers':
         specifier: latest
         version: 5.0.1(react-hook-form@7.56.4(react@19.1.0))
@@ -238,6 +241,9 @@ packages:
 
   '@emotion/unitless@0.8.1':
     resolution: {integrity: sha512-KOEGMu6dmJZtpadb476IsZBclKvILjopjUii3V+7MnXIQCYh8W3NgNcgwo21n9LXZX6EDIKvqfjYxXebDwxKmQ==}
+
+  '@emurgo/cardano-serialization-lib-asmjs@14.1.2':
+    resolution: {integrity: sha512-sE8y+9iz9bgWeJQKmVeuSRGc9LAXlwR0M3W9+AOa370CN4rzVhoSlpHzkK6zKQSL4iu+yQHWpz/4e1b/o95a1w==}
 
   '@floating-ui/core@1.7.0':
     resolution: {integrity: sha512-FRdBLykrPPA6P76GGGqlex/e7fbe0F1ykgxHYNXQsH/iTEtjMj/f9bpY5oQqbjt5VgZvgz/uKXbGuROijh3VLA==}
@@ -2181,6 +2187,8 @@ snapshots:
   '@emotion/memoize@0.9.0': {}
 
   '@emotion/unitless@0.8.1': {}
+
+  '@emurgo/cardano-serialization-lib-asmjs@14.1.2': {}
 
   '@floating-ui/core@1.7.0':
     dependencies:

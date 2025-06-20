@@ -16,6 +16,8 @@ import {
   Users,
 } from 'lucide-react';
 import CustomWalletConnect from '@/components/wallet/CustomWalletConnect';
+import { toast } from '@/components/ui/use-toast';
+import axios from 'axios';
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
@@ -41,42 +43,14 @@ export default function Login() {
 
   // Debug logging
   useEffect(() => {
-    console.log('🔍 Login page state:', {
-      isConnected,
-      wallet: !!wallet,
-      address,
-      rewardAddresses,
-      isLoadingWalletData,
-      isLoading,
-    });
-  }, [
-    isConnected,
-    wallet,
-    address,
-    rewardAddresses,
-    isLoadingWalletData,
-    isLoading,
-  ]);
+    console.log("🔍 Login page state:", { isConnected, wallet, address, rewardAddresses, isLoadingWalletData });
+    console.log("🔄 Checking wallet connection state...");
 
-  // Handle wallet connection - now using address (which is set to reward address)
-  useEffect(() => {
-    console.log('🔄 Checking wallet connection state...');
-
-    if (isLoadingWalletData) {
-      setConnectionStatus('Extracting wallet data...');
-      console.log('⏳ Wallet data is loading...');
-      return;
-    }
-
-    // Now address should be the reward address, so we can use it directly
-    if (isConnected && wallet && address) {
-      console.log(
-        '✅ Wallet fully connected with address (reward address), starting authentication...'
-      );
-      console.log('🎯 Using address for auth:', address);
-      setConnectionStatus('Authenticating with backend...');
-      handleWalletAuth();
-    } else if (isConnected && wallet && !address) {
+    if (isConnected && address && !isLoadingWalletData) {
+      console.log("✅ Wallet fully connected with address, starting authentication...");
+      console.log("🎯 Using address for auth:", address);
+      handleAuthentication(address);
+    } else if (isConnected && !address && !isLoadingWalletData) {
       console.log('⚠️ Wallet connected but no address yet...');
       setConnectionStatus('Getting wallet address...');
     } else if (isConnected && !wallet) {
@@ -93,118 +67,86 @@ export default function Login() {
     return emailRegex.test(email);
   };
 
-  const handleWalletAuth = async () => {
-    if (!wallet || !address) {
-      console.log('❌ Cannot authenticate: missing wallet or address');
+  const getErrorMessage = (error: any): string => {
+    if (axios.isAxiosError(error)) {
+      if (error.response?.data?.error?.message) {
+        return error.response.data.error.message;
+      }
+      if (error.response?.data?.message) {
+        return error.response.data.message;
+      }
+      if (error.message) {
+        return error.message;
+      }
+    }
+    return 'An unexpected error occurred.';
+  };
+
+  const handleAuthentication = async (walletAddress: string) => {
+    if (!walletAddress) {
+      console.error('❌ No wallet address provided for authentication.');
+      toast({
+        title: 'Authentication Error',
+        description: 'No wallet address provided for authentication.',
+        variant: 'destructive',
+      });
       return;
     }
 
-    // Validate email for registration
-    if (authMode === 'register') {
-      if (!email.trim()) {
-        setEmailError('Email is required for registration');
-        return;
+    setIsLoading(true);
+    setError(null);
+
+    // Login logic
+    if (authMode === 'login') {
+      try {
+        console.log('🔑 Attempting login with wallet address...');
+        setConnectionStatus('Logging in...');
+        await login({ wallet: walletAddress });
+        setSuccess('Successfully logged in! Redirecting...');
+        router.push('/marketplace');
+      } catch (error) {
+        console.error('❌ Login error:', error);
+        setError('Login failed. If you are a new user, please try registering instead.');
+        disconnectWallet();
+      } finally {
+        setIsLoading(false);
+        setConnectionStatus('');
       }
-      if (!validateEmail(email)) {
-        setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    // Registration logic
+    if (authMode === 'register') {
+      if (!email.trim() || !validateEmail(email)) {
+        setEmailError('Please enter a valid email address.');
+        setIsLoading(false);
         return;
       }
       setEmailError(null);
-    }
-
-    try {
-      console.log('🔐 Starting authentication process...');
-      console.log('🎯 Authenticating with address:', address);
-      console.log('🎁 Reward address for reference:', rewardAddresses);
-
-      setIsLoading(true);
-      setError(null);
-      setConnectionStatus('Authenticating...');
-
-      if (authMode === 'login') {
-        console.log('🔑 Attempting login with reward address...');
-        setConnectionStatus('Logging in...');
-        await login({ wallet: address });
-        setSuccess(
-          'Successfully logged in! Redirecting to marketplace...'
-        );
-        console.log('✅ Authentication successful, wallet state:', {
-          isConnected,
-          address,
-          authMode
-        });
-      } else {
-        console.log(
-          '📝 Attempting registration with email and reward address...'
-        );
-        console.log('📧 Using email:', email);
-        setConnectionStatus('Creating account...');
-        await registerWithWallet(email, address);
-        setSuccess(
-          'Account created successfully! Redirecting to marketplace...'
-        );
-        console.log('✅ Authentication successful, wallet state:', {
-          isConnected,
-          address,
-          authMode
-        });
-      }
-
-      setConnectionStatus('Redirecting...');
       
-      // Add debugging to understand wallet state after successful auth
-      console.log('✅ Authentication successful, wallet state:', {
-        isConnected,
-        address,
-        authMode
-      });
-      
-      // Give more time for wallet state to stabilize before redirect
-      setTimeout(() => {
-        console.log('🔄 Redirecting to marketplace, final wallet state:', {
-          isConnected,
-          address
-        });
-        router.push('/marketplace');
-      }, 2000);
-    } catch (error: any) {
-      console.error('❌ Authentication error:', error);
-      setConnectionStatus('');
-
-      // Disconnect wallet on errors
       try {
-        if (isConnected) {
-          disconnectWallet();
-        }
-      } catch (disconnectError) {
-        console.warn(
-          '⚠️ Wallet disconnect failed during cleanup:',
-          disconnectError
-        );
-      }
+        console.log('📝 Attempting registration with email and wallet address...');
+        setConnectionStatus('Creating account...');
+        await registerWithWallet(email, walletAddress);
+        setSuccess('Account created! Logging you in...');
+        
+        // After successful registration, log in to get the session token
+        await login({ wallet: walletAddress });
+        setSuccess('Successfully logged in! Redirecting...');
+        router.push('/marketplace');
 
-      // Check for 401 Unauthorized (user doesn't exist) or specific error messages
-      if (
-        authMode === 'login' &&
-        (error.response?.status === 401 ||
-          error.message.includes('not found') ||
-          error.message.includes('User not found') ||
-          error.message.includes('Unauthorized'))
-      ) {
-        setError('Wallet not found. Please register first.');
-        setAuthMode('register');
-      } else if (
-        authMode === 'register' &&
-        (error.response?.status === 409 ||
-          error.message.includes('already exists'))
-      ) {
-        setError('Wallet already registered. Please login instead.');
-        setAuthMode('login');
-      } else {
-        setError(error.message || `Failed to ${authMode} with wallet`);
+      } catch (error) {
+        console.error('❌ Registration error:', error);
+        if (axios.isAxiosError(error) && error.response?.status === 409) {
+          setError('This email or wallet is already registered. Please try logging in.');
+        } else {
+          setError(getErrorMessage(error));
+        }
+        disconnectWallet();
+      } finally {
+        setIsLoading(false);
+        setConnectionStatus('');
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
