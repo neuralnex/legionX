@@ -155,7 +155,7 @@ export default function AgentDetailPage() {
                 <div className="relative w-8 h-8 mr-3">
                   <Image
                     src={agent.creator?.avatar || "/placeholder.svg?height=32&width=32"}
-                    alt={agent.creator?.username || "Creator"}
+                    alt={agent.creator?.name || "Creator"}
                     fill
                     className="rounded-full object-cover"
                     sizes="32px"
@@ -171,7 +171,7 @@ export default function AgentDetailPage() {
                       href={`/creators/${agent.creator?.id || "unknown"}`}
                       className="text-purple-400 hover:text-purple-300"
                     >
-                      {agent.creator?.username || "Unknown Creator"}
+                      {agent.creator?.name || "Unknown Creator"}
                     </Link>
                   </p>
                 </div>

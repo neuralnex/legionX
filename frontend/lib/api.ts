@@ -289,4 +289,45 @@ export const accessAPI = {
   },
 }
 
+// IPFS API
+export const ipfsAPI = {
+  uploadFile: async (file: File): Promise<{ cid: string; ipfsHash: string; gatewayUrl: string }> => {
+    console.log("📤 IPFS API: Upload file", { fileName: file.name, size: file.size })
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    const response = await api.post<{ success: boolean; cid: string; ipfsHash: string; gatewayUrl: string }>(
+      "/api/v1/ipfs/upload-file",
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    )
+    return response.data
+  },
+
+  uploadMetadata: async (metadata: any, imageCid: string, options: { name: string; description: string }): Promise<{ cid: string; ipfsHash: string; gatewayUrl: string }> => {
+    console.log("📤 IPFS API: Upload metadata", { name: options.name })
+    const response = await api.post<{ success: boolean; cid: string; ipfsHash: string; gatewayUrl: string }>(
+      "/api/v1/ipfs/upload-metadata",
+      { modelMetadata: metadata, imageCid, options }
+    )
+    return response.data
+  },
+
+  getFile: async (cid: string): Promise<{ data: any; contentType: string }> => {
+    console.log("📥 IPFS API: Get file", { cid })
+    const response = await api.get<{ success: boolean; data: any; contentType: string }>(`/api/v1/ipfs/file/${cid}`)
+    return response.data
+  },
+
+  getMetadata: async (cid: string): Promise<{ metadata: any }> => {
+    console.log("📥 IPFS API: Get metadata", { cid })
+    const response = await api.get<{ success: boolean; metadata: any }>(`/api/v1/ipfs/metadata/${cid}`)
+    return response.data
+  },
+}
+
 export default api

@@ -44,9 +44,23 @@ export class ListingController {
         throw new AppError('Seller not found', 404, 'SELLER_NOT_FOUND');
       }
 
-      const agent = await agentRepository.findOne({ where: { id: agentId } });
+      // Try to find existing agent, or create a new one if not found
+      let agent = null;
+      if (agentId) {
+        agent = await agentRepository.findOne({ where: { id: parseInt(agentId) } });
+      }
+      
+      // If no agent found, create a new one based on the modelMetadata
       if (!agent) {
-        throw new AppError('Agent not found', 404, 'AGENT_NOT_FOUND');
+        agent = agentRepository.create({
+          name: modelMetadata.name || title,
+          description: modelMetadata.description || description,
+          modelVersion: modelMetadata.version || '1.0.0',
+          metadataUri: '', // Will be updated after IPFS upload
+          creator: seller
+        });
+        await agentRepository.save(agent);
+        logger.info(`Created new agent with ID: ${agent.id}`);
       }
 
       // Create the listing first

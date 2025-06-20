@@ -1,9 +1,7 @@
 {
   "lib\\api.ts -> ../store/useAuthStore": {
     "id": "lib\\api.ts -> ../store/useAuthStore",
-    "files": [
-      "static/chunks/_app-pages-browser_store_useAuthStore_ts.js"
-    ]
+    "files": []
   },
   "node_modules\\.pnpm\\@tanstack+query-devtools@5.76.0\\node_modules\\@tanstack\\query-devtools\\build\\dev.js -> ./DevtoolsComponent/6BZD2SY2.js": {
     "id": "node_modules\\.pnpm\\@tanstack+query-devtools@5.76.0\\node_modules\\@tanstack\\query-devtools\\build\\dev.js -> ./DevtoolsComponent/6BZD2SY2.js",

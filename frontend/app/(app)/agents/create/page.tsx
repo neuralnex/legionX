@@ -9,6 +9,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAgentCreation } from '@/hooks/useMarketplace';
+import { useWallet } from '@/contexts/WalletContext';
+import { ipfsAPI } from '@/lib/api';
 import {
   ChevronRight,
   ChevronLeft,
@@ -55,6 +57,8 @@ const agentSchema = z.object({
       message: 'Storage must be a positive number',
     }),
   dependencies: z.array(z.string()).optional(),
+  modelFile: z.instanceof(File).optional(),
+  modelUrl: z.string().optional(),
 });
 
 type AgentFormData = z.infer<typeof agentSchema>;
@@ -76,6 +80,7 @@ export default function CreateAgentPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { mutateAsync: createAgent, isPending } = useAgentCreation();
+  const { address } = useWallet();
 
   const {
     register,
@@ -173,19 +178,71 @@ export default function CreateAgentPage() {
       setCurrentStep('submitting');
       setErrorMessage(null);
 
+      // Check if wallet is connected
+      if (!address) {
+        throw new Error('Please connect your wallet before creating an agent');
+      }
+
+      // Check if either model file or model URL is provided
+      if (!data.modelFile && !data.modelUrl) {
+        throw new Error('Please provide either a model file or model URL');
+      }
+
       // In a real app, we would upload the image to a storage service
       // and get back a URL to include in the agent data
       const imageUrl = imagePreview || '/placeholder.svg?height=400&width=400';
 
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Upload model file to IPFS if provided
+      let modelIpfsHash = '';
+      if (data.modelFile) {
+        try {
+          const uploadResult = await ipfsAPI.uploadFile(data.modelFile);
+          modelIpfsHash = uploadResult.cid;
+          console.log('✅ Model file uploaded to IPFS:', modelIpfsHash);
+        } catch (error) {
+          console.error('❌ Failed to upload model file:', error);
+          throw new Error('Failed to upload model file to IPFS');
+        }
+      }
 
-      // Call the mutation function
-      await createAgent({
-        ...data,
-        price: Number(data.price),
-        image: imageUrl,
-      });
+      // Transform form data to match CreateListingRequest interface
+      const createListingData = {
+        // agentId is now optional - backend will create agent automatically
+        price: data.price, // Keep as string for BigInt
+        duration: 1, // Default duration in months
+        modelMetadata: {
+          name: data.title,
+          description: data.description,
+          version: data.version,
+          framework: data.modelType,
+          inputFormat: "text",
+          outputFormat: "text",
+          accessPoint: {
+            type: 'custom' as const,
+            endpoint: data.modelUrl || (modelIpfsHash ? `ipfs://${modelIpfsHash}` : "https://api.example.com/model")
+          },
+          requirements: {
+            minMemory: parseInt(data.minMemory),
+            minGPU: false,
+            minCPUCores: 1
+          },
+          pricing: {
+            perRequest: 0.001,
+            perHour: 0.1,
+            perMonth: 10
+          },
+          tags: data.capabilities,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        title: data.title,
+        description: data.description,
+        assetId: `asset_${Date.now()}`, // Generate a unique asset ID
+        ownerAddress: address // Use the actual wallet address
+      };
+
+      // Call the mutation function with properly formatted data
+      await createAgent(createListingData);
 
       setCurrentStep('success');
     } catch (error: any) {
@@ -631,6 +688,88 @@ export default function CreateAgentPage() {
                       Add dependencies like "Node.js", "Python 3.8+", etc.
                     </p>
                   </div>
+
+                  {/* Model File Upload Section */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      AI Model Files <span className="text-red-500">*</span>
+                    </label>
+                    <div className="space-y-4">
+                      {/* Option 1: File Upload */}
+                      <div>
+                        <label className="flex items-center justify-center w-full h-32 bg-gray-800 border border-gray-700 border-dashed rounded-lg cursor-pointer hover:bg-gray-700">
+                          <div className="text-center">
+                            <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                            <p className="text-sm text-gray-400">
+                              Upload AI Model Files
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Supported: .json, .pkl, .h5, .pt, .onnx, .zip
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Max size: 100MB
+                            </p>
+                          </div>
+                          <input
+                            type="file"
+                            accept=".json,.pkl,.h5,.pt,.onnx,.zip,.model,.bin"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setValue('modelFile', file);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                        {watchedValues.modelFile && (
+                          <div className="mt-2 p-3 bg-gray-800 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <Upload className="h-4 w-4 text-green-400 mr-2" />
+                                <span className="text-sm text-white">
+                                  {watchedValues.modelFile.name}
+                                </span>
+                                <span className="ml-2 text-xs text-gray-400">
+                                  ({(watchedValues.modelFile.size / 1024 / 1024).toFixed(2)} MB)
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setValue('modelFile', undefined)}
+                                className="text-red-400 hover:text-red-300"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Option 2: Model URL */}
+                      <div className="text-center">
+                        <span className="text-sm text-gray-400">OR</span>
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="modelUrl"
+                          className="block text-sm font-medium text-gray-300 mb-1"
+                        >
+                          Model URL (for hosted models)
+                        </label>
+                        <input
+                          id="modelUrl"
+                          {...register('modelUrl')}
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg py-2 px-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="https://api.example.com/model or IPFS hash"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                          Provide a URL if your model is hosted externally
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="mt-8 flex justify-between">
@@ -667,6 +806,27 @@ export default function CreateAgentPage() {
                 className="bg-gray-900/50 border border-gray-800 rounded-xl p-6"
               >
                 <h2 className="text-xl font-semibold mb-6">Preview & Submit</h2>
+
+                {/* Wallet Connection Status */}
+                <div className="mb-6 p-4 rounded-lg border">
+                  {address ? (
+                    <div className="flex items-center text-green-400">
+                      <CheckCircle2 className="h-5 w-5 mr-2" />
+                      <span className="font-medium">Wallet Connected</span>
+                      <span className="ml-2 text-sm text-gray-400">
+                        {address.slice(0, 8)}...{address.slice(-8)}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center text-red-400">
+                      <AlertCircle className="h-5 w-5 mr-2" />
+                      <span className="font-medium">Wallet Not Connected</span>
+                      <span className="ml-2 text-sm text-gray-400">
+                        Please connect your wallet to create an agent
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
@@ -790,6 +950,37 @@ export default function CreateAgentPage() {
                       </div>
                     </div>
 
+                    {/* Model File Information */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-400">
+                        AI Model Files
+                      </h3>
+                      <div className="mt-1">
+                        {watchedValues.modelFile ? (
+                          <div className="flex items-center text-green-400">
+                            <Upload className="h-4 w-4 mr-2" />
+                            <span className="text-sm">
+                              {watchedValues.modelFile.name}
+                            </span>
+                            <span className="ml-2 text-xs text-gray-400">
+                              ({(watchedValues.modelFile.size / 1024 / 1024).toFixed(2)} MB)
+                            </span>
+                          </div>
+                        ) : watchedValues.modelUrl ? (
+                          <div className="flex items-center text-blue-400">
+                            <Upload className="h-4 w-4 mr-2" />
+                            <span className="text-sm">
+                              External Model URL
+                            </span>
+                          </div>
+                        ) : (
+                          <p className="text-red-400 text-sm">
+                            No model file or URL provided
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
                     {watchedValues.isPremium && (
                       <div className="bg-purple-900/30 border border-purple-800 rounded-lg p-3">
                         <p className="text-purple-400 text-sm">
@@ -814,11 +1005,16 @@ export default function CreateAgentPage() {
                   </motion.button>
                   <motion.button
                     type="submit"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 px-6 rounded-lg font-medium"
+                    disabled={!address}
+                    whileHover={address ? { scale: 1.02 } : {}}
+                    whileTap={address ? { scale: 0.98 } : {}}
+                    className={`py-2 px-6 rounded-lg font-medium ${
+                      address
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white'
+                        : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    }`}
                   >
-                    Create Agent
+                    {address ? 'Create Agent' : 'Connect Wallet First'}
                   </motion.button>
                 </div>
               </motion.div>

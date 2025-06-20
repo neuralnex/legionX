@@ -113,7 +113,7 @@ export interface Listing {
 
 // Updated CreateListingRequest to match backend expectations
 export interface CreateListingRequest {
-  agentId: string
+  agentId?: string // Made optional since backend creates agents automatically
   price: string // BigInt as string
   duration: number
   modelMetadata: AIModelMetadata

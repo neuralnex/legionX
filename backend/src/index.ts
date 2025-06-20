@@ -16,7 +16,7 @@ import listingRoutes from './routes/listing.routes.ts';
 import purchaseRoutes from './routes/purchase.routes.ts';
 import accessRoutes from './routes/access.routes.ts';
 import premiumRoutes from './routes/premium.routes.ts';
-//import ipfsRoutes from './routes/ipfs.routes.ts';
+import ipfsRoutes from './routes/ipfs.routes.ts';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware.ts';
@@ -81,7 +81,7 @@ app.use('/api/v1/listings', listingRoutes);
 app.use('/api/v1/purchases', purchaseRoutes);
 app.use('/api/v1/access', accessRoutes);
 app.use('/api/v1/premium', premiumRoutes);
-//app.use('/api/v1/ipfs', ipfsRoutes);
+app.use('/api/v1/ipfs', ipfsRoutes);
 
 // Error handling
 app.use(errorHandler);

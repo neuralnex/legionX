@@ -164,38 +164,38 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       console.log("🔍 Extracting wallet data from custom wallet API...")
 
-      // Get reward addresses first (priority for authentication)
+      // Get payment addresses first (priority for authentication)
       let walletAddress = null
 
       try {
-        console.log("🎁 Getting reward addresses (for authentication)...")
-        const rewardAddresses = await walletApi.getRewardAddresses()
-        console.log("🎁 Reward addresses:", rewardAddresses)
+        console.log("📍 Getting used addresses (payment addresses for authentication)...")
+        const usedAddresses = await walletApi.getUsedAddresses()
+        console.log("📍 Used addresses:", usedAddresses)
 
-        if (rewardAddresses && rewardAddresses.length > 0) {
-          setRewardAddresses(rewardAddresses[0])
-          walletAddress = rewardAddresses[0]
-          console.log("✅ Using reward address for authentication:", walletAddress)
+        if (usedAddresses && usedAddresses.length > 0) {
+          walletAddress = usedAddresses[0]
+          console.log("✅ Using payment address for authentication:", walletAddress)
         }
       } catch (error) {
-        console.error("❌ Error getting reward addresses:", error)
+        console.error("❌ Error getting used addresses:", error)
       }
 
-      // Only try other address methods if reward address failed
+      // Only try reward addresses if payment addresses failed
       if (!walletAddress) {
-        console.log("⚠️ No reward address found, trying other address methods...")
+        console.log("⚠️ No payment address found, trying reward addresses...")
 
         try {
-          console.log("📍 Attempting to get used addresses...")
-          const usedAddresses = await walletApi.getUsedAddresses()
-          console.log("📍 Used addresses:", usedAddresses)
+          console.log("🎁 Getting reward addresses...")
+          const rewardAddresses = await walletApi.getRewardAddresses()
+          console.log("🎁 Reward addresses:", rewardAddresses)
 
-          if (usedAddresses && usedAddresses.length > 0) {
-            walletAddress = usedAddresses[0]
-            console.log("✅ Got address from getUsedAddresses:", walletAddress)
+          if (rewardAddresses && rewardAddresses.length > 0) {
+            setRewardAddresses(rewardAddresses[0])
+            walletAddress = rewardAddresses[0]
+            console.log("✅ Using reward address as fallback:", walletAddress)
           }
         } catch (error) {
-          console.log("⚠️ getUsedAddresses failed:", error)
+          console.log("⚠️ getRewardAddresses failed:", error)
           try {
             console.log("📍 Trying getChangeAddress...")
             const changeAddress = await walletApi.getChangeAddress()
