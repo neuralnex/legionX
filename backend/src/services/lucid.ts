@@ -215,8 +215,19 @@ export class LucidService {
 
   async createListing(listing: Listing, seller: User): Promise<string> {
     try {
+      // Check if PinataService is properly initialized
+      if (!this.pinataService) {
+        throw new Error('PinataService not initialized');
+      }
+
       // Create NFT metadata for Pinata
       const modelMetadata = listing.modelMetadata as ExtendedAIModelMetadata;
+      
+      // Validate required metadata fields
+      if (!modelMetadata.name || !modelMetadata.description || !modelMetadata.version) {
+        throw new Error(`Missing required model metadata fields. Name: ${!!modelMetadata.name}, Description: ${!!modelMetadata.description}, Version: ${!!modelMetadata.version}`);
+      }
+      
       const nftMetadata: AIModelNFTMetadata = {
         name: modelMetadata.name,
         description: modelMetadata.description,
@@ -240,6 +251,8 @@ export class LucidService {
         }
       };
 
+      this.logger.info('Attempting to upload metadata to Pinata...');
+      
       // Upload metadata to Pinata
       const result = await this.pinataService.uploadNFTMetadata(
         modelMetadata,
@@ -269,16 +282,24 @@ export class LucidService {
         ipfsHash: ipfsHash // Add IPFS hash to metadata
       };
 
+      this.logger.info('Creating blockchain transaction...');
+
       const tx = await this.lucid
         .newTx()
         .pay.ToAddress(this.validatorAddress, { lovelace: listing.price })
         .attachMetadata(674, metadata)
       .complete();
 
+      this.logger.info('Signing and submitting transaction...');
       return await this.signTransaction(tx);
     } catch (error) {
-      this.logger.error('Error creating listing:', error);
-      throw new Error('Failed to create listing');
+      this.logger.error('Error creating listing:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        listingId: listing.id,
+        sellerId: seller.id
+      });
+      throw new Error(`Failed to create listing: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

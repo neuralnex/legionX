@@ -27,13 +27,20 @@ export class PinataService {
     this.gateway = process.env.PINATA_GATEWAY || '';
 
     if (!process.env.PINATA_JWT) {
-      throw new Error('PINATA_JWT environment variable is required');
+      this.logger.error('PINATA_JWT environment variable is not set');
+      throw new Error('PINATA_JWT environment variable is required for IPFS uploads');
     }
 
-    this.pinata = new PinataSDK({
-      pinataJwt: process.env.PINATA_JWT!,
-      pinataGateway: this.gateway,
-    });
+    try {
+      this.pinata = new PinataSDK({
+        pinataJwt: process.env.PINATA_JWT!,
+        pinataGateway: this.gateway,
+      });
+      this.logger.info('PinataService initialized successfully');
+    } catch (error) {
+      this.logger.error('Failed to initialize PinataSDK:', error);
+      throw new Error(`Failed to initialize PinataSDK: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async uploadFile(file: Buffer, fileName: string, mimeType = 'application/octet-stream'): Promise<PinataResponse> {

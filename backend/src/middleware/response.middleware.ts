@@ -2,6 +2,11 @@ import type { Request, Response, NextFunction } from 'express';
 import { Logger } from '../utils/logger.js';
 
 export const responseWrapper = (req: Request, res: Response, next: NextFunction) => {
+  // Skip response wrapping for OPTIONS requests (CORS preflight)
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
   // Store original json method
   const originalJson = res.json;
 

@@ -5,6 +5,14 @@ import { authMiddleware } from '../middleware/auth.middleware.js';
 
 const router: Router = Router();
 
+// CORS preflight handling
+router.options('/', (req: Request, res: Response) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
+    res.status(204).send();
+});
+
 // Public routes
 router.get('/', (req: Request, res: Response) => {
     const controller = new ListingController();
