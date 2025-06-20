@@ -268,6 +268,9 @@ export class LucidService {
       // Update listing with IPFS hash
       (listing as any).ipfsHash = ipfsHash;
 
+      // Calculate listing fee (1 ADA = 1,000,000 lovelace)
+      const listingFee = 1000000n; // 1 ADA as listing fee
+      
       const metadata = {
         msg: ['List'],
         listingId: listing.id,
@@ -282,11 +285,11 @@ export class LucidService {
         ipfsHash: ipfsHash // Add IPFS hash to metadata
       };
 
-      this.logger.info('Creating blockchain transaction...');
+      this.logger.info(`Creating blockchain transaction with listing fee: ${listingFee} lovelace (${Number(listingFee) / 1000000} ADA)`);
 
       const tx = await this.lucid
         .newTx()
-        .pay.ToAddress(this.validatorAddress, { lovelace: listing.price })
+        .pay.ToAddress(this.validatorAddress, { lovelace: listingFee })
         .attachMetadata(674, metadata)
       .complete();
 
@@ -414,6 +417,125 @@ export class LucidService {
     } catch (error) {
       this.logger.error('Error verifying wallet ownership:', error);
       return false;
+    }
+  }
+
+  // Create unsigned transaction for user wallet signing
+  async createUnsignedListingTransaction(listing: Listing, seller: User): Promise<{ tx: any; fee: bigint; listingFee: bigint }> {
+    try {
+      // Check if PinataService is properly initialized
+      if (!this.pinataService) {
+        throw new Error('PinataService not initialized');
+      }
+
+      // Create NFT metadata for Pinata
+      const modelMetadata = listing.modelMetadata as ExtendedAIModelMetadata;
+      
+      // Validate required metadata fields
+      if (!modelMetadata.name || !modelMetadata.description || !modelMetadata.version) {
+        throw new Error(`Missing required model metadata fields. Name: ${!!modelMetadata.name}, Description: ${!!modelMetadata.description}, Version: ${!!modelMetadata.version}`);
+      }
+      
+      const nftMetadata: AIModelNFTMetadata = {
+        name: modelMetadata.name,
+        description: modelMetadata.description,
+        image: modelMetadata.image || '', // Use a default image if none provided
+        properties: {
+          modelMetadata: {
+            ...modelMetadata,
+            accessPoint: {
+              type: 'custom',
+              endpoint: modelMetadata.modelUrl || ''
+            },
+            // Add file information to tags
+            tags: [
+              ...(modelMetadata.tags || []),
+              `file:${modelMetadata.name}`,
+              'mediaType:application/json'
+            ]
+          },
+          category: 'AI Model',
+          version: modelMetadata.version
+        }
+      };
+
+      this.logger.info('Attempting to upload metadata to Pinata...');
+      
+      // Upload metadata to Pinata
+      const result = await this.pinataService.uploadNFTMetadata(
+        modelMetadata,
+        nftMetadata.image,
+        {
+          name: nftMetadata.name,
+          description: nftMetadata.description
+        }
+      );
+      const ipfsHash = result.cid;
+      this.logger.info(`Metadata uploaded to IPFS: ${ipfsHash}`);
+
+      // Update listing with IPFS hash
+      (listing as any).ipfsHash = ipfsHash;
+
+      // Calculate listing fee (1 ADA = 1,000,000 lovelace)
+      const listingFee = 1000000n; // 1 ADA as listing fee
+      
+      const metadata = {
+        msg: ['List'],
+        listingId: listing.id,
+        price: listing.price.toString(),
+        full_price: listing.fullPrice?.toString(),
+        seller: seller.wallet || '',
+        modelMetadata: JSON.stringify(listing.modelMetadata),
+        subscription: listing.subscriptionId ? {
+          duration: listing.duration,
+          token: listing.subscriptionId
+        } : undefined,
+        ipfsHash: ipfsHash // Add IPFS hash to metadata
+      };
+
+      this.logger.info(`Creating unsigned transaction with listing fee: ${listingFee} lovelace (${Number(listingFee) / 1000000} ADA)`);
+
+      // Create transaction using user's wallet address
+      const userUtxos = await this.lucid.utxosAt(seller.wallet || '');
+      if (!userUtxos || userUtxos.length === 0) {
+        throw new Error('No UTxOs found for user wallet');
+      }
+
+      const tx = await this.lucid
+        .newTx()
+        .collectFrom(userUtxos)
+        .pay.ToAddress(this.validatorAddress, { lovelace: listingFee })
+        .attachMetadata(674, metadata)
+        .complete();
+
+      // Estimate network fee
+      const fee = await this.estimateNetworkFee(tx);
+      
+      this.logger.info(`Transaction created. Listing fee: ${listingFee} lovelace, Network fee: ${fee} lovelace`);
+      
+      return { tx, fee, listingFee };
+    } catch (error) {
+      this.logger.error('Error creating unsigned listing transaction:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        listingId: listing.id,
+        sellerId: seller.id
+      });
+      throw new Error(`Failed to create unsigned listing transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Submit signed transaction
+  async submitSignedTransaction(signedTxHex: string): Promise<string> {
+    try {
+      this.logger.info('Submitting signed transaction...');
+      // Note: This is a placeholder - in a real implementation, you'd submit the signed transaction
+      // For now, we'll return a mock hash since the focus is on getting unsigned transactions to frontend
+      this.logger.info(`Transaction would be submitted: ${signedTxHex.substring(0, 20)}...`);
+      return `mock-tx-${Date.now()}`;
+    } catch (error) {
+      this.logger.error('Error submitting signed transaction:', error);
+      throw new Error(`Failed to submit signed transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

@@ -30,6 +30,12 @@ router.post('/', authMiddleware, (req: Request, res: Response) => {
     controller.createListing(req, res);
 });
 
+// New route for submitting signed transactions
+router.post('/:id/submit-transaction', authMiddleware, (req: Request, res: Response) => {
+    const controller = new ListingController();
+    controller.submitSignedTransaction(req, res);
+});
+
 router.put('/:id', authMiddleware, (req: Request, res: Response) => {
     const controller = new ListingController();
     controller.updateListing(req, res);

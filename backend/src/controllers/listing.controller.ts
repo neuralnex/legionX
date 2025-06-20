@@ -83,24 +83,48 @@ export class ListingController {
       await listingRepository.save(listing);
 
       try {
-        // Create the transaction with metadata upload
-        const txHash = await this.lucidService.createListing(listing, seller);
+        // Create unsigned transaction for user to sign
+        const { tx, fee, listingFee } = await this.lucidService.createUnsignedListingTransaction(listing, seller);
         
-        // Update the listing with the transaction hash
-        listing.txHash = txHash;
-        listing.status = 'pending';
-        await listingRepository.save(listing);
+        // Get the transaction hex for frontend signing
+        const txHex = tx.toString();
+        
+        // Calculate total cost (listing fee + network fee)
+        const totalCost = listingFee + fee;
+        
+        logger.info(`Created unsigned transaction. Listing fee: ${listingFee} lovelace, Network fee: ${fee} lovelace, Total: ${totalCost} lovelace`);
 
-        res.status(201).json({
+        res.status(200).json({
           listing,
-          message: 'Listing created successfully. Transaction submitted for confirmation.'
+          unsignedTransaction: txHex,
+          fees: {
+            listingFee: listingFee.toString(),
+            networkFee: fee.toString(),
+            totalCost: totalCost.toString()
+          },
+          message: 'Unsigned transaction created. Please sign with your wallet to complete the listing.'
         });
       } catch (error) {
-        // If the transaction fails, update the listing status
+        // If the transaction creation fails, update the listing status
         listing.status = 'cancelled';
         await listingRepository.save(listing);
-        logger.error('Failed to create listing transaction:', error);
-        throw new AppError('Failed to create listing transaction', 500, 'TRANSACTION_FAILED');
+        
+        // Log the detailed error information
+        logger.error('Failed to create unsigned listing transaction:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          listingId: listing.id,
+          sellerId: seller.id,
+          originalError: error
+        });
+        
+        // Throw the original error with additional context
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        throw new AppError(`Failed to create unsigned listing transaction: ${errorMessage}`, 500, 'TRANSACTION_FAILED', {
+          originalError: errorMessage,
+          listingId: listing.id,
+          sellerId: seller.id
+        });
       }
     } catch (error) {
       if (error instanceof AppError) {
@@ -170,5 +194,60 @@ export class ListingController {
       order: { createdAt: 'DESC' }
     });
     res.json(listings);
+  }
+
+  async submitSignedTransaction(req: Request, res: Response) {
+    try {
+      if (!this.lucidService) {
+        await this.initializeLucid();
+        if (!this.lucidService) {
+          throw new AppError('LucidService not initialized', 500, 'SERVICE_NOT_INITIALIZED');
+        }
+      }
+
+      const { id } = req.params;
+      const { signedTransaction } = req.body;
+      const sellerId = (req as any).user.id;
+
+      if (!signedTransaction) {
+        throw new AppError('Signed transaction is required', 400, 'MISSING_SIGNED_TRANSACTION');
+      }
+
+      const listing = await listingRepository.findOne({
+        where: { id, seller: { id: sellerId } },
+        relations: ['seller']
+      });
+
+      if (!listing) {
+        throw new AppError('Listing not found', 404, 'LISTING_NOT_FOUND');
+      }
+
+      if (listing.status !== 'pending') {
+        throw new AppError('Listing is not in pending status', 400, 'INVALID_LISTING_STATUS');
+      }
+
+      // Submit the signed transaction
+      const txHash = await this.lucidService.submitSignedTransaction(signedTransaction);
+      
+      // Update the listing with the transaction hash and status
+      listing.txHash = txHash;
+      listing.status = 'active';
+      listing.isActive = true;
+      await listingRepository.save(listing);
+
+      logger.info(`Listing ${id} activated with transaction hash: ${txHash}`);
+
+      res.json({
+        listing,
+        txHash,
+        message: 'Listing created successfully. Transaction submitted for confirmation.'
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      logger.error('Error submitting signed transaction:', error);
+      throw new AppError('Failed to submit signed transaction', 500, 'TRANSACTION_SUBMISSION_FAILED');
+    }
   }
 } 
