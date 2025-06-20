@@ -144,16 +144,20 @@ export default function Login() {
       console.error('❌ Authentication error:', error);
       setConnectionStatus('');
 
+      // Check for 401 Unauthorized (user doesn't exist) or specific error messages
       if (
         authMode === 'login' &&
-        (error.message.includes('not found') ||
-          error.message.includes('User not found'))
+        (error.response?.status === 401 ||
+          error.message.includes('not found') ||
+          error.message.includes('User not found') ||
+          error.message.includes('Unauthorized'))
       ) {
         setError('Wallet not found. Please register first.');
         setAuthMode('register');
       } else if (
         authMode === 'register' &&
-        error.message.includes('already exists')
+        (error.response?.status === 409 ||
+          error.message.includes('already exists'))
       ) {
         setError('Wallet already registered. Please login instead.');
         setAuthMode('login');

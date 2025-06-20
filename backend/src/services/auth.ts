@@ -20,6 +20,20 @@ export class AuthService {
     try {
       const userRepo = AppDataSource.getRepository(User);
       
+      // Check if user with this email already exists
+      const existingUserByEmail = await userRepo.findOne({ where: { email: data.email } });
+      if (existingUserByEmail) {
+        throw new Error('User with this email already exists');
+      }
+
+      // Check if user with this wallet already exists
+      if (data.wallet) {
+        const existingUserByWallet = await userRepo.findOne({ where: { wallet: data.wallet } });
+        if (existingUserByWallet) {
+          throw new Error('User with this wallet address already exists');
+        }
+      }
+      
       // Create new user
       const user = userRepo.create({
         email: data.email,
@@ -32,7 +46,34 @@ export class AuthService {
       return await userRepo.save(user);
     } catch (error) {
       Logger.error('Error registering user:', error);
-      throw new Error('Failed to register user');
+      throw error; // Re-throw the specific error message
+    }
+  }
+
+  /**
+   * Check if user exists by email or wallet
+   */
+  static async userExists(email?: string, wallet?: string): Promise<{ emailExists: boolean; walletExists: boolean }> {
+    try {
+      const userRepo = AppDataSource.getRepository(User);
+      
+      let emailExists = false;
+      let walletExists = false;
+
+      if (email) {
+        const existingUserByEmail = await userRepo.findOne({ where: { email } });
+        emailExists = !!existingUserByEmail;
+      }
+
+      if (wallet) {
+        const existingUserByWallet = await userRepo.findOne({ where: { wallet } });
+        walletExists = !!existingUserByWallet;
+      }
+
+      return { emailExists, walletExists };
+    } catch (error) {
+      Logger.error('Error checking if user exists:', error);
+      throw new Error('Failed to check user existence');
     }
   }
 
