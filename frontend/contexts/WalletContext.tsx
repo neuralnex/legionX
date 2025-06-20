@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, createContext, useContext, type ReactNode } from "react"
+import { useState, useEffect, createContext, useContext, type ReactNode, useCallback } from "react"
 import { useConnectWallet, type EnabledWallet } from "@newm.io/cardano-dapp-wallet-connector"
 import * as CSL from '@emurgo/cardano-serialization-lib-asmjs';
 import { Buffer } from 'buffer';
@@ -35,6 +35,8 @@ const hexToBech32 = (hexAddress: string, networkId: number = 0): string | null =
   }
 };
 
+const WALLET_STORAGE_KEY = 'legionx_wallet_info';
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const {
     wallet,
@@ -53,6 +55,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [availableWallets, setAvailableWallets] = useState<string[]>([])
   const [customWallet, setCustomWallet] = useState<any>(null)
   const [isLoadingWalletData, setIsLoadingWalletData] = useState(false)
+  const [isConnected, setIsConnected] = useState(false)
 
   // Check for available wallets on mount
   useEffect(() => {
@@ -91,7 +94,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (customWallet) {
         // Handle custom wallet
         console.log("🔧 Handling custom wallet data...")
-        handleCustomWalletData(customWallet)
+        handleCustomWalletData(customWallet, "custom")
       } else {
         // Handle library wallet
         console.log("📚 Handling library wallet data...")
@@ -180,7 +183,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, [activeWallet, customWallet])
 
-  const handleCustomWalletData = async (walletApi: any) => {
+  const handleCustomWalletData = async (walletApi: any, walletName?: string) => {
     try {
       console.log("🔍 Extracting wallet data from custom wallet API...")
 
@@ -212,6 +215,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
       if (authAddress) {
         setAddress(authAddress);
+        setIsConnected(true);
+        if (walletName) persistWalletInfo(walletName, authAddress);
         console.log('✅ Final wallet address for authentication:', authAddress);
       }
       
@@ -237,12 +242,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const handleConnectWallet = async (walletName: string, walletApi?: any) => {
     try {
       console.log(`🔗 Connecting to ${walletName}...`)
-
       if (walletApi) {
         // Custom wallet connection
         console.log("🔧 Setting custom wallet...")
         setCustomWallet(walletApi)
         console.log(`✅ Custom wallet ${walletName} connected successfully`)
+        await handleCustomWalletData(walletApi, walletName)
       } else {
         // Library wallet connection
         console.log("📚 Using library wallet connection...")
@@ -277,9 +282,40 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setRewardAddresses(undefined)
     setUnusedAddresses(undefined)
     setIsLoadingWalletData(false)
+    setIsConnected(false)
 
     console.log("✅ Wallet state cleared")
   }
+
+  // Save wallet info to localStorage
+  const persistWalletInfo = (walletName: string, address: string) => {
+    localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify({ walletName, address }));
+  };
+
+  // Remove wallet info from localStorage
+  const clearPersistedWalletInfo = () => {
+    localStorage.removeItem(WALLET_STORAGE_KEY);
+  };
+
+  // Restore wallet info from localStorage on mount
+  useEffect(() => {
+    const restoreWallet = async () => {
+      const stored = localStorage.getItem(WALLET_STORAGE_KEY);
+      if (stored) {
+        try {
+          const { walletName, address } = JSON.parse(stored);
+          if (walletName && address) {
+            // Optionally, you could auto-connect to the wallet extension here
+            setIsConnected(true);
+            setAddress(address);
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+    };
+    restoreWallet();
+  }, []);
 
   const value = {
     wallet: activeWallet,
@@ -287,7 +323,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     balance,
     rewardAddresses,
     unusedAddresses,
-    isConnected: !!activeWallet,
+    isConnected,
     availableWallets,
     isLoadingWalletData,
     connectWallet: handleConnectWallet,
