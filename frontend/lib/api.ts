@@ -295,13 +295,15 @@ export const ipfsAPI = {
     console.log("📤 IPFS API: Upload file", { fileName: file.name, size: file.size })
     const formData = new FormData()
     formData.append('file', file)
-    
+    // Get JWT token from localStorage
+    const token = localStorage.getItem('token');
     const response = await api.post<{ success: boolean; cid: string; ipfsHash: string; gatewayUrl: string }>(
       "/api/v1/ipfs/upload-file",
       formData,
       {
         headers: {
           'Content-Type': 'multipart/form-data',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       }
     )

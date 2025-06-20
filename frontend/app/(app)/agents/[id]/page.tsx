@@ -155,7 +155,7 @@ export default function AgentDetailPage() {
                 <div className="relative w-8 h-8 mr-3">
                   <Image
                     src={agent.creator?.avatar || "/placeholder.svg?height=32&width=32"}
-                    alt={agent.creator?.name || "Creator"}
+                    alt={agent.creator?.name || "List"}
                     fill
                     className="rounded-full object-cover"
                     sizes="32px"
