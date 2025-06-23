@@ -1,6 +1,6 @@
 # AI Agent Marketplace
 
-A decentralized marketplace for AI agents, built on the Cardano blockchain. This platform enables creators to monetize their AI models and users to access powerful AI capabilities through NFT-based ownership.
+A decentralized marketplace for AI agents and models, built on the Cardano blockchain. This platform enables creators to monetize their AI models and users to access powerful AI capabilities through NFT-based ownership.
 
 ## Features
 
