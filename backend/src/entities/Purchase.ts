@@ -38,6 +38,18 @@ export class Purchase {
   @Column('timestamp', { nullable: true })
   subscriptionExpiry?: Date;
 
+  @Column('varchar', { nullable: true })
+  currency?: string;
+
+  @Column('varchar', { nullable: true })
+  paymentMethod?: string;
+
+  @Column('varchar', { nullable: true })
+  transactionId?: string;
+
+  @Column('timestamp', { nullable: true })
+  purchaseDate?: Date;
+
   @CreateDateColumn()
   createdAt!: Date;
 

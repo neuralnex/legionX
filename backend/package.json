@@ -10,7 +10,10 @@
     "build": "tsc",
     "test": "jest",
     "lint": "eslint . --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/config/database.ts",
+    "migration:run": "typeorm-ts-node-commonjs migration:run -d src/config/database.ts",
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/config/database.ts"
   },
   "keywords": [],
   "author": "",

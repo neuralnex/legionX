@@ -76,6 +76,9 @@ export class Listing {
   @Column('varchar', { nullable: true })
   listingFeeTxHash?: string;
 
+  @Column('varchar', { nullable: true })
+  type?: string;
+
   @CreateDateColumn()
   createdAt!: Date;
 
