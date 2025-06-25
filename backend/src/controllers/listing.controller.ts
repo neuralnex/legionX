@@ -113,7 +113,7 @@ export class ListingController {
       }
 
       // Create the listing
-      const listing = listingRepository.create(listingData);
+      const listing: any = listingRepository.create(listingData);
       await listingRepository.save(listing);
 
       // Deduct 1 point from user
@@ -320,7 +320,7 @@ export class ListingController {
       }
 
       // Create the listing first
-      const listing = listingRepository.create({
+      const listing: any = listingRepository.create({
         seller,
         agent,
         price: BigInt(price),
