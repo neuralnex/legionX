@@ -5,7 +5,6 @@ export interface User {
   name?: string
   email?: string
   avatar?: string
-  wallet?: string
   isVerified: boolean
   verificationTxHash?: string
   isPremium: boolean
@@ -20,24 +19,15 @@ export interface User {
 
 export interface RegisterRequest {
   email: string
-  wallet: string
-}
-
-export interface WalletLoginRequest {
-  wallet: string
-  rewardAddress?: string
-}
-
-export interface LinkWalletRequest {
-  email: string
-  wallet: string
 }
 
 export interface AuthResponse {
   success: boolean
   data: {
     message: string
-    token: string
+    token?: string
+    accessToken?: string
+    refreshToken?: string
     user: User
   }
   timestamp: string

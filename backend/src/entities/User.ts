@@ -8,14 +8,23 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column('varchar', { unique: true, nullable: false })
+  email!: string;
+
+  @Column('varchar', { unique: true, nullable: false })
+  username!: string;
+
+  @Column('varchar', { nullable: false })
+  firstName!: string;
+
+  @Column('varchar', { nullable: false })
+  lastName!: string;
+
+  @Column('varchar', { nullable: true })
+  passwordHash?: string;
+
   @Column('varchar', { nullable: true })
   address?: string;
-
-  @Column('varchar', { nullable: true })
-  name?: string;
-
-  @Column('varchar', { nullable: true })
-  email?: string;
 
   @Column('varchar', { nullable: true })
   avatar?: string;
@@ -46,6 +55,15 @@ export class User {
 
   @Column('varchar', { nullable: true })
   analyticsTxHash?: string;
+
+  @Column('varchar', { nullable: true })
+  refreshToken?: string;
+
+  @Column('timestamp', { nullable: true })
+  lastLoginAt?: Date;
+
+  @Column('int', { default: 0 })
+  listingPoints!: number;
 
   @OneToMany(() => Listing, (listing: Listing) => listing.seller)
   listings!: Listing[];

@@ -1,36 +1,80 @@
 import type { Request, Response } from 'express';
 import { AuthService } from '../services/auth.js';
-import type { RegisterRequest, LinkWalletRequest, AuthError } from '../types/auth.js';
+import { Web2AuthService } from '../services/web2auth.js';
+import type { RegisterRequest, AuthError } from '../types/auth.js';
 import { Logger } from '../utils/logger.js';
-import { LucidService } from '../services/lucid.js';
 import { AppError } from '../middleware/error.middleware.js';
+
+const web2AuthService = new Web2AuthService();
 
 export class AuthController {
   private authService: AuthService;
-  private lucidService: LucidService | null = null;
   private logger: Logger;
 
   constructor() {
     this.authService = new AuthService();
     this.logger = new Logger('AuthController');
-    this.initializeLucid();
   }
 
-  private async initializeLucid() {
+  /**
+   * Web2 Registration (email, username, password)
+   */
+  static async registerWeb2(req: Request, res: Response) {
     try {
-      this.lucidService = await LucidService.getInstance();
-    } catch (error) {
-      this.logger.error('Failed to initialize LucidService:', error);
+      const { email, username, firstName, lastName, password } = req.body;
+      const user = await web2AuthService.register({ email, username, firstName, lastName, password });
+      const accessToken = await web2AuthService.generateAccessToken(user);
+      const refreshToken = await web2AuthService.generateRefreshToken(user);
+      res.json({
+        message: 'User registered successfully',
+        accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName
+        }
+      });
+    } catch (error: any) {
+      Logger.error('Error registering user (web2):', error);
+      res.status(400).json({ error: error.message || 'Failed to register user' });
     }
   }
 
   /**
-   * Register a new user
+   * Web2 Login (email, password)
+   */
+  static async loginWeb2(req: Request, res: Response) {
+    try {
+      const { email, password } = req.body;
+      const { user, accessToken, refreshToken } = await web2AuthService.login({ email, password });
+      res.json({
+        message: 'Login successful',
+        accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName
+        }
+      });
+    } catch (error: any) {
+      Logger.error('Error logging in (web2):', error);
+      res.status(401).json({ error: error.message || 'Failed to login' });
+    }
+  }
+
+  /**
+   * Register a new user (fiat-based)
    */
   static async register(req: Request, res: Response) {
     try {
-      const { email, wallet } = req.body;
-      const user = await AuthService.register({ email, wallet });
+      const { email } = req.body;
+      const user = await AuthService.register({ email });
       const token = await new AuthService().generateToken(user);
       
       res.json({
@@ -38,8 +82,7 @@ export class AuthController {
         token,
         user: {
           id: user.id,
-          email: user.email,
-          wallet: user.wallet
+          email: user.email
         }
       });
     } catch (error: any) {
@@ -49,8 +92,6 @@ export class AuthController {
       if (error.message.includes('already exists')) {
         if (error.message.includes('email')) {
           res.status(409).json({ error: 'Email already registered' });
-        } else if (error.message.includes('wallet')) {
-          res.status(409).json({ error: 'Wallet address already registered' });
         } else {
           res.status(409).json({ error: error.message });
         }
@@ -61,54 +102,17 @@ export class AuthController {
   }
 
   /**
-   * Link wallet to user
+   * Login with email (fiat-based authentication)
    */
-  static async linkWallet(req: Request, res: Response) {
+  static async loginWithEmail(req: Request, res: Response) {
     try {
-      const { email, wallet } = req.body;
-      const user = await AuthService.linkWallet({ email, wallet });
-      const token = await new AuthService().generateToken(user);
+      const { email } = req.body;
       
-      res.json({
-        message: 'Wallet linked successfully',
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          wallet: user.wallet
-        }
-      });
-    } catch (error) {
-      Logger.error('Error linking wallet:', error);
-      res.status(400).json({ error: 'Failed to link wallet' });
-    }
-  }
-
-  /**
-   * Login with wallet
-   */
-  static async loginWithWallet(req: Request, res: Response) {
-    try {
-      const { wallet } = req.body;
-      
-      if (!wallet) {
-        return res.status(400).json({ error: 'Wallet address is required' });
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
       }
 
-      // Verify wallet has UTXOs (basic ownership verification)
-      try {
-        const lucidService = await LucidService.getInstance();
-        const hasUtxos = await lucidService.verifyWalletOwnership(wallet);
-        
-        if (!hasUtxos) {
-          return res.status(401).json({ error: 'Invalid wallet address or no UTXOs found' });
-        }
-      } catch (lucidError) {
-        Logger.warn(`Lucid verification failed, proceeding with basic auth: ${lucidError}`);
-        // Continue with authentication even if Lucid verification fails
-      }
-
-      const user = await AuthService.findByWallet(wallet);
+      const user = await AuthService.findByEmail(email);
       
       if (!user) {
         return res.status(401).json({ error: 'User not found' });
@@ -121,12 +125,11 @@ export class AuthController {
         token,
         user: {
           id: user.id,
-          email: user.email,
-          wallet: user.wallet
+          email: user.email
         }
       });
     } catch (error) {
-      Logger.error('Error logging in with wallet:', error);
+      Logger.error('Error logging in with email:', error);
       res.status(400).json({ error: 'Failed to login' });
     }
   }
@@ -154,6 +157,9 @@ export class AuthController {
     }
   }
 
+  /**
+   * Get user profile
+   */
   getProfile = async (req: Request, res: Response): Promise<void> => {
     try {
       const user = await this.authService.getUserByEmail(req.user.email);
@@ -176,58 +182,22 @@ export class AuthController {
     }
   };
 
-  static async verifyWallet(req: Request, res: Response) {
-    try {
-      const { wallet, signature } = req.body;
-
-      if (!wallet || !signature) {
-        throw new AppError(
-          'Wallet address and signature are required',
-          400,
-          'MISSING_REQUIRED_FIELDS',
-          { wallet: 'required', signature: 'required' }
-        );
-      }
-
-      const lucidService = await LucidService.getInstance();
-      const isValid = await lucidService.verifyWalletOwnership(wallet);
-
-      if (!isValid) {
-        throw new AppError(
-          'Invalid wallet signature',
-          401,
-          'INVALID_SIGNATURE',
-          { wallet, signature: 'invalid' }
-        );
-      }
-
-      // ... rest of the code ...
-    } catch (error) {
-      Logger.error('Error verifying wallet:', error);
-      res.status(400).json({ error: 'Failed to verify wallet' });
-    }
-  }
-
   /**
    * Check if user exists
    */
   static async checkUserExists(req: Request, res: Response) {
     try {
-      const { email, wallet } = req.query;
+      const { email } = req.query;
       
-      if (!email && !wallet) {
-        return res.status(400).json({ error: 'Email or wallet address is required' });
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
       }
 
-      const { emailExists, walletExists } = await AuthService.userExists(
-        email as string, 
-        wallet as string
-      );
+      const { emailExists } = await AuthService.userExists(email as string);
       
       res.json({
         emailExists: !!email && emailExists,
-        walletExists: !!wallet && walletExists,
-        exists: emailExists || walletExists
+        exists: emailExists
       });
     } catch (error: any) {
       Logger.error('Error checking user existence:', error);

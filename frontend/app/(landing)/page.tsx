@@ -14,7 +14,7 @@ import {
   MessageSquare,
   BarChart3,
   ImageIcon,
-  Wallet,
+  Coins,
   PlusCircle,
   ShoppingCart,
   ArrowRight,
@@ -24,6 +24,9 @@ import {
   Globe,
   TrendingUp,
   Star,
+  CreditCard,
+  Mail,
+  Lock,
 } from "lucide-react"
 
 export default function LandingPage() {
@@ -67,7 +70,7 @@ export default function LandingPage() {
       id: "1",
       title: "CodeCraft Pro",
       creator: "Ella Smith",
-      price: "0.25 ADA",
+      price: "$25.00",
       image: "/placeholder.svg?height=400&width=400",
       likes: 42,
     },
@@ -75,7 +78,7 @@ export default function LandingPage() {
       id: "2",
       title: "Data Sage",
       creator: "Alex Kim",
-      price: "0.18 ADA",
+      price: "$18.00",
       image: "/placeholder.svg?height=400&width=400",
       likes: 36,
     },
@@ -83,7 +86,7 @@ export default function LandingPage() {
       id: "3",
       title: "Text Genius",
       creator: "Omar Hassan",
-      price: "0.15 ADA",
+      price: "$15.00",
       image: "/placeholder.svg?height=400&width=400",
       likes: 28,
     },
@@ -91,7 +94,7 @@ export default function LandingPage() {
       id: "4",
       title: "Pixel Muse",
       creator: "Lily Lane",
-      price: "0.22 ADA",
+      price: "$22.00",
       image: "/placeholder.svg?height=400&width=400",
       likes: 38,
     },
@@ -117,30 +120,30 @@ export default function LandingPage() {
 
   const steps = [
     {
-      icon: <Wallet className="h-8 w-8 text-purple-400" />,
-      title: "Connect your wallet",
+      icon: <Coins className="h-8 w-8 text-purple-400" />,
+      title: "Buy listing points",
       description:
-        "Connect your Cardano wallet to get started. Your wallet is your identity and payment method on the platform.",
+        "Purchase listing points at $1 each. Each point allows you to list one AI agent or model on the marketplace.",
     },
     {
       icon: <PlusCircle className="h-8 w-8 text-purple-400" />,
       title: "List your AI agent",
       description:
-        "List your pre-built AI agent on our marketplace. Set its capabilities, personality, and your desired price.",
+        "Use your points to list your pre-built AI agent. Set its capabilities, personality, and your desired price in USD.",
     },
     {
       icon: <ShoppingCart className="h-8 w-8 text-purple-400" />,
       title: "Trade AI agents",
       description:
-        "Buy and sell AI agents on our decentralized marketplace. All transactions are secured by the blockchain.",
+        "Buy and sell AI agents with secure fiat payments. All transactions are processed instantly via Flutterwave.",
     },
   ]
 
   const features = [
     {
       icon: <Shield className="h-8 w-8 text-purple-400" />,
-      title: "Secure & Decentralized",
-      description: "Built on Cardano blockchain for maximum security and true ownership of your AI agents.",
+      title: "Secure & Reliable",
+      description: "Built with enterprise-grade security and reliable payment processing for safe transactions.",
     },
     {
       icon: <Zap className="h-8 w-8 text-purple-400" />,
@@ -150,7 +153,7 @@ export default function LandingPage() {
     {
       icon: <Users className="h-8 w-8 text-purple-400" />,
       title: "Community Driven",
-      description: "Join thousands of creators and collectors in the world's first AI agent marketplace.",
+      description: "Join thousands of creators and collectors in the world's premier AI agent marketplace.",
     },
     {
       icon: <Globe className="h-8 w-8 text-purple-400" />,
@@ -169,6 +172,24 @@ export default function LandingPage() {
     },
   ]
 
+  const authFeatures = [
+    {
+      icon: <Mail className="h-6 w-6" />,
+      title: "Simple Email Login",
+      description: "Sign in with your email and password - no wallet required to get started.",
+    },
+    {
+      icon: <CreditCard className="h-6 w-6" />,
+      title: "Fiat Payments",
+      description: "Pay with your credit card or bank account. Secure, instant transactions.",
+    },
+    {
+      icon: <Shield className="h-6 w-6" />,
+      title: "Secure Platform",
+      description: "Enterprise-grade security with reliable payment processing for safe transactions.",
+    },
+  ]
+
   return (
     <>
       <div className="pt-24 pb-16">
@@ -183,131 +204,196 @@ export default function LandingPage() {
                 transition={{ duration: 0.5 }}
               >
                 <span className="inline-block bg-purple-900/30 text-purple-400 px-4 py-1 rounded-full text-sm font-medium mb-6">
-                  DECENTRALIZED AI MARKETPLACE
+                  AI AGENT MARKETPLACE
                 </span>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
                   Create, trade & collect
                   <br />
-                  AI agents on Cardano.
+                  AI agents with ease.
                 </h1>
                 <p className="text-gray-300 mb-8 max-w-lg">
-                  The first decentralized marketplace for AI agents built on Cardano. Connect your wallet to start
-                  trading AI-powered solutions secured by blockchain technology.
+                  The premier marketplace for AI agents with simple fiat payments. 
+                  Start with email login, pay with your card, and access powerful AI solutions instantly.
                 </p>
 
                 <div className="flex flex-wrap gap-4 mb-8">
                   {stats.map((stat, index) => (
                     <div key={index} className="mr-8 last:mr-0">
-                      <div className="text-3xl font-bold text-white">{stat.value}</div>
-                      <div className="text-sm text-gray-400">{stat.label}</div>
+                      <div className="text-2xl font-bold text-white">{stat.value}</div>
+                      <div className="text-gray-400 text-sm">{stat.label}</div>
                     </div>
                   ))}
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4">
+                  <Link href="/marketplace">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-3 rounded-lg font-medium flex items-center"
+                    >
+                      Explore Marketplace
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </motion.button>
+                  </Link>
                   <Link href="/login">
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-4 rounded-full font-medium flex items-center justify-center text-lg"
+                      className="border border-gray-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-800"
                     >
-                      <Wallet className="h-5 w-5 mr-2" />
                       Get Started
                     </motion.button>
                   </Link>
-
-                  <button
-                    onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
-                    className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-4 rounded-full font-medium flex items-center justify-center border border-gray-700 text-lg"
-                  >
-                    Learn More
-                    <ArrowRight className="h-5 w-5 ml-2" />
-                  </button>
                 </div>
               </motion.div>
 
               <motion.div
-                className="md:w-1/2 grid grid-cols-2 gap-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                className="md:w-1/2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <div className="space-y-4">
-                  <div className="rounded-lg overflow-hidden h-40 bg-gradient-to-br from-purple-900 to-indigo-900 flex items-center justify-center">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-indigo-600/20 rounded-2xl"></div>
                     <Image
-                      src="/placeholder.svg?height=200&width=200"
-                      alt="AI Agent"
-                      width={100}
-                      height={100}
-                      className="rounded-lg"
-                    />
-                  </div>
-                  <div className="rounded-lg overflow-hidden h-32 bg-gradient-to-br from-blue-900 to-purple-900 flex items-center justify-center">
-                    <Image
-                      src="/placeholder.svg?height=200&width=200"
-                      alt="AI Agent"
-                      width={80}
-                      height={80}
-                      className="rounded-lg"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-4 mt-8">
-                  <div className="rounded-lg overflow-hidden h-32 bg-gradient-to-br from-indigo-900 to-blue-900 flex items-center justify-center">
-                    <Image
-                      src="/placeholder.svg?height=200&width=200"
-                      alt="AI Agent"
-                      width={80}
-                      height={80}
-                      className="rounded-lg"
-                    />
-                  </div>
-                  <div className="rounded-lg overflow-hidden h-40 bg-gradient-to-br from-violet-900 to-purple-900 flex items-center justify-center">
-                    <Image
-                      src="/placeholder.svg?height=200&width=200"
-                      alt="AI Agent"
-                      width={100}
-                      height={100}
-                      className="rounded-lg"
-                    />
-                  </div>
+                    src="/placeholder.svg?height=600&width=600"
+                    alt="AI Agent Marketplace"
+                    width={600}
+                    height={600}
+                    className="relative z-10 rounded-2xl"
+                  />
                 </div>
               </motion.div>
             </div>
           </div>
         </section>
 
-        {/* Features Section */}
-        <section id="features" className="py-16" ref={ref}>
+        {/* Authentication Features Section */}
+        <section className="py-16 bg-gray-900/50">
           <div className="container mx-auto px-4">
-            <motion.div
-              className="text-center mb-16"
-              initial={{ opacity: 0, y: 20 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5 }}
-            >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Choose LegionX?</h2>
-              <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                Experience the future of AI trading with our revolutionary decentralized marketplace
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple Authentication</h2>
+              <p className="text-gray-400 max-w-2xl mx-auto">
+                Start with familiar email login and secure fiat payments
               </p>
-            </motion.div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {authFeatures.map((feature, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  className="text-center"
+                >
+                  <div className="bg-purple-600/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                  <p className="text-gray-400">{feature.description}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Points System Section */}
+        <section className="py-16">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple Points System</h2>
+              <p className="text-gray-400 max-w-2xl mx-auto">
+                Our innovative points system makes listing and trading AI agents effortless
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="text-center">
+                <div className="bg-yellow-600/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Coins className="h-8 w-8 text-yellow-500" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Buy Points</h3>
+                <p className="text-gray-400">Purchase listing points at $1 each. Each point allows you to list one AI agent.</p>
+              </div>
+
+              <div className="text-center">
+                <div className="bg-green-600/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <PlusCircle className="h-8 w-8 text-green-500" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">List Agents</h3>
+                <p className="text-gray-400">Use your points to list AI agents with your desired price in USD.</p>
+              </div>
+
+              <div className="text-center">
+                <div className="bg-blue-600/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CreditCard className="h-8 w-8 text-blue-500" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Get Paid</h3>
+                <p className="text-gray-400">Receive payments instantly via secure fiat transactions when your agents sell.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works */}
+        <section className="py-16 bg-gray-900/50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
+              <p className="text-gray-400 max-w-2xl mx-auto">
+                Get started in three simple steps
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {steps.map((step, index) => (
+            <motion.div
+                  key={index}
+                  className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                >
+                  <div className="bg-gray-800/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    {step.icon}
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
+                  <p className="text-gray-400">{step.description}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Features */}
+        <section className="py-16">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Choose LegionX</h2>
+              <p className="text-gray-400 max-w-2xl mx-auto">
+                The most advanced AI agent marketplace with the best user experience
+              </p>
+            </div>
 
             <motion.div
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
               variants={container}
               initial="hidden"
-              animate={inView ? "show" : "hidden"}
+              whileInView="show"
+              viewport={{ once: true }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
             >
               {features.map((feature, index) => (
                 <motion.div
                   key={index}
                   variants={item}
-                  className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 hover:border-purple-500/50 transition-colors"
+                  className="bg-gray-800/50 p-6 rounded-xl"
                 >
-                  <div className="bg-gray-800/50 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                    {feature.icon}
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
+                  <div className="mb-4">{feature.icon}</div>
+                  <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
                   <p className="text-gray-400">{feature.description}</p>
                 </motion.div>
               ))}
@@ -316,7 +402,7 @@ export default function LandingPage() {
         </section>
 
         {/* Categories Section */}
-        <section className="py-16">
+        <section className="py-16 bg-gray-900/50">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4">Explore Categories</h2>
@@ -364,7 +450,7 @@ export default function LandingPage() {
         </section>
 
         {/* Top Sellers Section */}
-        <section id="creators" className="py-16">
+        <section id="creators" className="py-16 bg-gray-900/50">
           <div className="container mx-auto px-4">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl font-bold">Top Creators</h2>
@@ -407,70 +493,6 @@ export default function LandingPage() {
                   image={collection.image}
                 />
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* How It Works Section */}
-        <section id="how-it-works" className="py-16">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold mb-4">How It Works</h2>
-              <p className="text-gray-400 text-lg">Get started in three simple steps</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {steps.map((step, index) => (
-                <motion.div
-                  key={index}
-                  className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 text-center relative"
-                  whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(124, 58, 237, 0.3)" }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
-                    {index + 1}
-                  </div>
-                  <div className="bg-gray-800/50 rounded-full w-16 h-16 flex items-center justify-center mb-6 mx-auto mt-4">
-                    {step.icon}
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3">{step.title}</h3>
-                  <p className="text-gray-400">{step.description}</p>
-                </motion.div>
-              ))}
-            </div>
-
-            <div className="text-center mt-12">
-              <Link href="/login">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-4 rounded-full font-medium text-lg"
-                >
-                  Start Trading Now
-                </motion.button>
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-16 bg-gradient-to-r from-purple-900/20 to-indigo-900/20">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Join the Revolution?</h2>
-            <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">
-              Connect your Cardano wallet and start trading AI agents today. Be part of the future of decentralized AI.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/login">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-4 rounded-full font-medium text-lg flex items-center justify-center"
-                >
-                  <Wallet className="h-5 w-5 mr-2" />
-                  Connect Wallet
-                </motion.button>
-              </Link>
             </div>
           </div>
         </section>

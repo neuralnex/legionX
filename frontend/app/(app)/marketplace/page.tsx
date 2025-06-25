@@ -1,304 +1,389 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { useMarketplace, type MarketplaceFilters } from "@/hooks/useMarketplace"
-import AgentCard from "@/components/agents/AgentCard"
-import AgentCardSkeleton from "@/components/agents/AgentCardSkeleton"
-import { Search, Filter, SlidersHorizontal, ChevronDown, X, AlertCircle } from "lucide-react"
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { 
+  Search, 
+  Filter, 
+  Grid3X3, 
+  List, 
+  ChevronDown,
+  Star,
+  TrendingUp
+} from 'lucide-react'
+import AgentCard from '@/components/agents/AgentCard'
+import { useToast } from '@/hooks/use-toast'
+
+interface Listing {
+  id: string
+  title: string
+  description: string
+  price: string
+  type: string
+  seller: {
+    id: string
+    name: string
+    email: string
+  }
+  metadata?: any
+  ipfsHash?: string
+  createdAt: string
+}
+
+interface MarketplaceData {
+  listings: Listing[]
+  pagination: {
+    currentPage: number
+    totalPages: number
+    totalItems: number
+    itemsPerPage: number
+  }
+}
 
 export default function MarketplacePage() {
-  const [filters, setFilters] = useState<MarketplaceFilters>({
-    page: 1,
-    limit: 8,
-  })
-  const [searchTerm, setSearchTerm] = useState("")
+  const { toast } = useToast()
+  const [listings, setListings] = useState<Listing[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedType, setSelectedType] = useState<string>('')
+  const [sortBy, setSortBy] = useState('newest')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [showFilters, setShowFilters] = useState(false)
-  const { data, isLoading, isError, error } = useMarketplace(filters)
 
-  const categories = [
-    { id: "all", name: "All Categories" },
-    { id: "knowledge", name: "Knowledge" },
-    { id: "coding", name: "Coding" },
-    { id: "content", name: "Content" },
-    { id: "conversation", name: "Conversation" },
-    { id: "data", name: "Data Analysis" },
-    { id: "visual", name: "Visual" },
-  ]
-
-  const [selectedCategory, setSelectedCategory] = useState("all")
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1])
-  const [sortOption, setSortOption] = useState<MarketplaceFilters["sortBy"]>("newest")
-
-  useEffect(() => {
-    // Update filters when search term changes, with debounce
-    const timer = setTimeout(() => {
-      if (searchTerm) {
-        setFilters((prev) => ({ ...prev, search: searchTerm }))
-      } else {
-        setFilters((prev) => {
-          const newFilters = { ...prev }
-          delete newFilters.search
-          return newFilters
-        })
-      }
-    }, 500)
-
-    return () => clearTimeout(timer)
-  }, [searchTerm])
-
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category)
-    if (category === "all") {
-      setFilters((prev) => {
-        const newFilters = { ...prev }
-        delete newFilters.category
-        return newFilters
+  const fetchListings = async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: '12',
+        ...(searchTerm && { search: searchTerm }),
+        ...(selectedType && { type: selectedType }),
+        ...(sortBy && { sortBy })
       })
-    } else {
-      setFilters((prev) => ({ ...prev, category }))
+
+      const response = await fetch(`/api/listings?${params}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch listings')
+      }
+
+      const data: MarketplaceData = await response.json()
+      setListings(data.listings)
+      setTotalPages(data.pagination.totalPages)
+    } catch (error) {
+      console.error('Error fetching listings:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load marketplace listings",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handlePriceChange = (values: [number, number]) => {
-    setPriceRange(values)
-    setFilters((prev) => ({
-      ...prev,
-      minPrice: values[0],
-      maxPrice: values[1],
-    }))
+  useEffect(() => {
+    fetchListings()
+  }, [currentPage, searchTerm, selectedType, sortBy])
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value)
+    setCurrentPage(1)
   }
 
-  const handleSortChange = (option: MarketplaceFilters["sortBy"]) => {
-    setSortOption(option)
-    setFilters((prev) => ({ ...prev, sortBy: option }))
+  const handleTypeFilter = (type: string) => {
+    setSelectedType(selectedType === type ? '' : type)
+    setCurrentPage(1)
   }
 
-  const resetFilters = () => {
-    setSelectedCategory("all")
-    setPriceRange([0, 1])
-    setSortOption("newest")
-    setSearchTerm("")
-    setFilters({
-      page: 1,
-      limit: 8,
-    })
+  const handleSort = (sort: string) => {
+    setSortBy(sort)
+    setCurrentPage(1)
   }
 
-  // Safe data access with fallbacks
-  const listings = data?.listings || []
-  const pagination = data?.pagination || null
+  const getStats = () => {
+    const totalListings = listings.length
+    const agents = listings.filter(l => l.type === 'agent').length
+    const models = listings.filter(l => l.type === 'model').length
+    const totalValue = listings.reduce((sum, l) => sum + parseFloat(l.price), 0)
+    
+    return { totalListings, agents, models, totalValue }
+  }
 
-  console.log("🔍 Marketplace data:", { data, listings, pagination, isLoading, isError, error })
+  const stats = getStats()
 
   return (
-    <div className="pt-24 pb-16">
-      <div className="container mx-auto px-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-            <h1 className="text-3xl font-bold mb-4 md:mb-0">AI Agent Marketplace</h1>
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2">AI Marketplace</h1>
+          <p className="text-gray-400">Discover and purchase AI agents and models</p>
+        </div>
 
-            <div className="flex flex-col sm:flex-row w-full md:w-auto space-y-4 sm:space-y-0 sm:space-x-4">
-              <div className="relative flex-1">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm">Total Listings</p>
+                  <p className="text-2xl font-bold">{stats.totalListings}</p>
                 </div>
-                <input
-                  type="text"
-                  placeholder="Search agents..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-gray-800/50 border border-gray-700 rounded-lg py-2 pl-10 pr-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+                <TrendingUp className="h-8 w-8 text-blue-400" />
               </div>
-
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center justify-center space-x-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg"
-              >
-                <Filter className="h-5 w-5" />
-                <span>Filters</span>
-              </button>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm">AI Agents</p>
+                  <p className="text-2xl font-bold">{stats.agents}</p>
+                </div>
+                <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">A</span>
             </div>
           </div>
-
-          <AnimatePresence>
-            {showFilters && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-                className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 mb-8 overflow-hidden"
-              >
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold">Filters</h2>
-                  <button
-                    onClick={resetFilters}
-                    className="text-sm text-purple-400 hover:text-purple-300 flex items-center"
-                  >
-                    <X className="h-4 w-4 mr-1" />
-                    Reset all
-                  </button>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm">AI Models</p>
+                  <p className="text-2xl font-bold">{stats.models}</p>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <h3 className="text-sm font-medium mb-3">Categories</h3>
-                    <div className="space-y-2">
-                      {categories.map((category) => (
-                        <label key={category.id} className="flex items-center">
-                          <input
-                            type="radio"
-                            name="category"
-                            checked={selectedCategory === category.id}
-                            onChange={() => handleCategoryChange(category.id)}
-                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-700 rounded-full bg-gray-800"
-                          />
-                          <span className="ml-2 text-sm text-gray-300">{category.name}</span>
-                        </label>
-                      ))}
+                <div className="h-8 w-8 bg-purple-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">M</span>
                     </div>
                   </div>
+            </CardContent>
+          </Card>
 
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-medium mb-3">Price Range (ETH)</h3>
-                    <div className="px-2">
-                      <div className="flex justify-between text-xs text-gray-400 mb-2">
-                        <span>{priceRange[0].toFixed(2)}</span>
-                        <span>{priceRange[1].toFixed(2)}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={priceRange[0]}
-                        onChange={(e) => handlePriceChange([Number.parseFloat(e.target.value), priceRange[1]])}
-                        className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-                      />
-                      <input
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={priceRange[1]}
-                        onChange={(e) => handlePriceChange([priceRange[0], Number.parseFloat(e.target.value)])}
-                        className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer mt-4"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-medium mb-3">Sort By</h3>
-                    <div className="relative">
-                      <select
-                        value={sortOption || "newest"}
-                        onChange={(e) => handleSortChange(e.target.value as MarketplaceFilters["sortBy"])}
-                        className="block w-full bg-gray-800 border border-gray-700 rounded-lg py-2 pl-3 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none"
-                      >
-                        <option value="newest">Newest First</option>
-                        <option value="oldest">Oldest First</option>
-                        <option value="price_asc">Price: Low to High</option>
-                        <option value="price_desc">Price: High to Low</option>
-                      </select>
-                      <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                        <ChevronDown className="h-5 w-5 text-gray-400" />
-                      </div>
-                    </div>
-                  </div>
+                  <p className="text-gray-400 text-sm">Total Value</p>
+                  <p className="text-2xl font-bold">${stats.totalValue.toFixed(2)}</p>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {Array.from({ length: 8 }).map((_, index) => (
-                <AgentCardSkeleton key={index} />
-              ))}
-            </div>
-          ) : isError ? (
-            <div className="bg-red-900/30 border border-red-800 text-red-300 px-6 py-4 rounded-xl">
-              <div className="flex items-center mb-2">
-                <AlertCircle className="h-5 w-5 mr-2" />
-                <h3 className="font-semibold">Error loading marketplace</h3>
+                <Star className="h-8 w-8 text-yellow-400" />
               </div>
-              <p className="text-sm mb-4">
-                {error?.message || "There was an error loading the marketplace. Please try again later."}
-              </p>
-              <button
-                onClick={() => window.location.reload()}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-              >
-                Retry
-              </button>
+            </CardContent>
+          </Card>
+                      </div>
+
+        {/* Search and Filters */}
+        <div className="mb-6">
+          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search agents and models..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10 bg-gray-800 border-gray-600 text-white"
+                      />
+                    </div>
+
+            {/* Controls */}
+            <div className="flex items-center gap-2">
+              {/* Type Filter */}
+              <div className="flex gap-1">
+                <Button
+                  variant={selectedType === 'agent' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleTypeFilter('agent')}
+                  className={selectedType === 'agent' ? 'bg-blue-600' : 'border-gray-600 text-gray-300'}
+                >
+                  Agents
+                </Button>
+                <Button
+                  variant={selectedType === 'model' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleTypeFilter('model')}
+                  className={selectedType === 'model' ? 'bg-purple-600' : 'border-gray-600 text-gray-300'}
+                >
+                  Models
+                </Button>
+                  </div>
+
+              {/* Sort */}
+                    <div className="relative">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="border-gray-600 text-gray-300"
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Sort
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+                
+                {showFilters && (
+                  <div className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-10 min-w-[150px]">
+                    <div className="p-2">
+                      <button
+                        onClick={() => handleSort('newest')}
+                        className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-700 ${
+                          sortBy === 'newest' ? 'text-blue-400' : 'text-gray-300'
+                        }`}
+                      >
+                        Newest First
+                      </button>
+                      <button
+                        onClick={() => handleSort('oldest')}
+                        className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-700 ${
+                          sortBy === 'oldest' ? 'text-blue-400' : 'text-gray-300'
+                        }`}
+                      >
+                        Oldest First
+                      </button>
+                      <button
+                        onClick={() => handleSort('price-low')}
+                        className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-700 ${
+                          sortBy === 'price-low' ? 'text-blue-400' : 'text-gray-300'
+                        }`}
+                      >
+                        Price: Low to High
+                      </button>
+                      <button
+                        onClick={() => handleSort('price-high')}
+                        className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-700 ${
+                          sortBy === 'price-high' ? 'text-blue-400' : 'text-gray-300'
+                        }`}
+                      >
+                        Price: High to Low
+                      </button>
+                    </div>
+                  </div>
+                )}
             </div>
-          ) : !Array.isArray(listings) || listings.length === 0 ? (
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-8 text-center">
-              <SlidersHorizontal className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No agents found</h3>
-              <p className="text-gray-400 mb-4">
-                {!Array.isArray(listings)
-                  ? "There was an error loading the agents data."
-                  : "Try adjusting your filters or search term"}
-              </p>
-              <button
-                onClick={resetFilters}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-              >
-                Reset Filters
-              </button>
+
+              {/* View Mode */}
+              <div className="flex border border-gray-600 rounded-lg">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className={viewMode === 'grid' ? 'bg-blue-600' : 'text-gray-300 hover:text-white'}
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className={viewMode === 'list' ? 'bg-blue-600' : 'text-gray-300 hover:text-white'}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Results */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Card key={i} className="bg-gray-800/50 border-gray-700 animate-pulse">
+                <CardContent className="p-6">
+                  <div className="h-4 bg-gray-700 rounded mb-4"></div>
+                  <div className="h-3 bg-gray-700 rounded mb-2"></div>
+                  <div className="h-3 bg-gray-700 rounded w-2/3"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : listings.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-gray-400 mb-4">
+              <Search className="h-16 w-16 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No listings found</h3>
+              <p>Try adjusting your search or filters</p>
+            </div>
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Listings Grid */}
+            <div className={`grid gap-6 ${
+              viewMode === 'grid' 
+                ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
+                : 'grid-cols-1'
+            }`}>
                 {listings.map((listing) => (
-                  <AgentCard key={listing.id} listing={listing} />
+                <AgentCard
+                  key={listing.id}
+                  agent={{
+                    id: listing.id,
+                    title: listing.title,
+                    description: listing.description,
+                    price: listing.price,
+                    type: listing.type,
+                    creator: listing.seller,
+                    metadata: listing.metadata,
+                    ipfsHash: listing.ipfsHash,
+                    createdAt: listing.createdAt
+                  }}
+                />
                 ))}
               </div>
 
-              {pagination && pagination.pages > 1 && (
-                <div className="flex justify-center mt-12">
-                  <nav className="flex items-center space-x-2">
-                    <button
-                      onClick={() => setFilters((prev) => ({ ...prev, page: Math.max(1, (prev.page || 1) - 1) }))}
-                      disabled={(filters.page || 1) <= 1}
-                      className="px-3 py-2 rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-8">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="border-gray-600 text-gray-300"
                     >
                       Previous
-                    </button>
-                    {Array.from({ length: pagination.pages }).map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setFilters((prev) => ({ ...prev, page: index + 1 }))}
-                        className={`px-3 py-2 rounded-md ${
-                          (filters.page || 1) === index + 1
-                            ? "bg-purple-600 text-white"
-                            : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                        }`}
-                      >
-                        {index + 1}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          page: Math.min(pagination.pages, (prev.page || 1) + 1),
-                        }))
-                      }
-                      disabled={(filters.page || 1) >= pagination.pages}
-                      className="px-3 py-2 rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const page = i + 1
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className={currentPage === page ? 'bg-blue-600' : 'border-gray-600 text-gray-300'}
+                        >
+                          {page}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="border-gray-600 text-gray-300"
                     >
                       Next
-                    </button>
-                  </nav>
+                  </Button>
+                </div>
                 </div>
               )}
             </>
           )}
-        </motion.div>
       </div>
     </div>
   )

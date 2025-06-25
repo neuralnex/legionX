@@ -10,9 +10,7 @@
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
-    "@emurgo/cardano-serialization-lib-asmjs": "^14.1.2",
     "@hookform/resolvers": "latest",
-    "@newm.io/cardano-dapp-wallet-connector": "latest",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",

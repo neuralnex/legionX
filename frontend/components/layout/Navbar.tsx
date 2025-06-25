@@ -7,20 +7,23 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '@/store/useAuthStore';
-import { Search, Wallet, LogOut } from 'lucide-react';
-import { useWallet } from '@/contexts/WalletContext';
+import { Search, Wallet, LogOut, Coins, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { PointsManager } from '@/components/PointsManager';
 
 const Navbar = () => {
   const pathname = usePathname();
   const { isAuthenticated, logout, user } = useAuthStore();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [points, setPoints] = useState(0);
+  const [showPointsDialog, setShowPointsDialog] = useState(false);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
-
-  const { isConnected, address } = useWallet();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,6 +33,34 @@ const Navbar = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // Fetch user points from backend
+      fetchUserPoints();
+    }
+  }, [isAuthenticated, user]);
+
+  const fetchUserPoints = async () => {
+    try {
+      const response = await fetch('/api/auth/profile', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.ok) {
+        const userData = await response.json();
+        setPoints(userData.user.listingPoints || 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user points:', error);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <motion.header
@@ -87,18 +118,33 @@ const Navbar = () => {
 
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
-                {/* Wallet Status */}
+                {/* Points Display */}
                 <div className="flex items-center space-x-2 bg-gray-800/50 px-3 py-1 rounded-full">
-                  <div
-                    className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-500'}`}
-                  ></div>
-                  <Wallet className="h-4 w-4 text-gray-400" />
-                  <span className="text-xs text-gray-300">
-                    {address
-                      ? `${address.slice(0, 6)}...${address.slice(-4)}`
-                      : 'Not Connected'}
-                  </span>
+                  <Coins className="h-4 w-4 text-yellow-500" />
+                  <span className="text-sm text-gray-300">{points} points</span>
                 </div>
+
+                {/* Buy Points Dialog */}
+                <Dialog open={showPointsDialog} onOpenChange={setShowPointsDialog}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="border-green-600 text-green-400 hover:bg-green-600/20">
+                      <Plus className="h-4 w-4 mr-1" />
+                      Buy Points
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-gray-900 border-gray-700">
+                    <DialogHeader>
+                      <DialogTitle>Buy Listing Points</DialogTitle>
+                    </DialogHeader>
+                    <PointsManager 
+                      currentPoints={points} 
+                      onPointsUpdate={(newPoints) => {
+                        setPoints(newPoints);
+                        setShowPointsDialog(false);
+                      }} 
+                    />
+                  </DialogContent>
+                </Dialog>
 
                 {/* User Menu */}
                 <Link href="/profile">
@@ -114,7 +160,7 @@ const Navbar = () => {
                 </Link>
 
                 <button
-                  onClick={() => logout()}
+                  onClick={handleLogout}
                   className="text-sm text-gray-300 hover:text-white flex items-center"
                   title="Disconnect Wallet"
                 >
@@ -228,16 +274,21 @@ const Navbar = () => {
 
             {isAuthenticated ? (
               <div className="pt-4 border-t border-gray-800 space-y-4">
-                <div className="flex items-center space-x-2 bg-gray-800/50 px-3 py-2 rounded-full">
-                  <div
-                    className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-500'}`}
-                  ></div>
-                  <Wallet className="h-4 w-4 text-gray-400" />
-                  <span className="text-xs text-gray-300">
-                    {address
-                      ? `${address.slice(0, 6)}...${address.slice(-4)}`
-                      : 'Not Connected'}
-                  </span>
+                {/* Mobile Points Display */}
+                <div className="flex items-center justify-between px-3 py-2">
+                  <div className="flex items-center space-x-2">
+                    <Coins className="h-4 w-4 text-yellow-500" />
+                    <span className="text-sm text-gray-300">{points} points</span>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="border-green-600 text-green-400 hover:bg-green-600/20"
+                    onClick={() => setShowPointsDialog(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Buy
+                  </Button>
                 </div>
 
                 <Link
@@ -257,12 +308,8 @@ const Navbar = () => {
                     <span className="text-white">Profile</span>
                   </div>
                 </Link>
-
                 <button
-                  onClick={() => {
-                    logout();
-                    setIsMobileMenuOpen(false);
-                  }}
+                  onClick={handleLogout}
                   className="w-full text-left text-sm text-gray-300 hover:text-white flex items-center p-3 bg-gray-800/30 rounded-lg"
                 >
                   <LogOut className="h-4 w-4 mr-3" />

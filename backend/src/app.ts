@@ -10,6 +10,7 @@ import listingRoutes from './routes/listing.routes.ts';
 import purchaseRoutes from './routes/purchase.routes.ts';
 import accessRoutes from './routes/access.routes.ts';
 import premiumRoutes from './routes/premium.routes.ts';
+import ipfsRoutes from './routes/ipfs.routes.ts';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware.ts';
@@ -29,7 +30,8 @@ app.use(cors({
       'http://localhost:3000', 
       'https://legion-x.vercel.app', 
       'https://legion-x-yvut.vercel.app',
-      'https://legionx.vercel.app'
+      'https://legionx.vercel.app',
+      'https://legionx.onrender.com'
     ];
     
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -62,7 +64,29 @@ app.use(responseWrapper);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
-  res.status(200).json({ status: 'ok' });
+  res.status(200).json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    service: 'LegionX API'
+  });
+});
+
+// Root endpoint
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    message: 'Welcome to LegionX API',
+    version: '1.0.0',
+    description: 'AI Agent Marketplace with Fiat Payments',
+    endpoints: {
+      health: '/health',
+      auth: '/api/v1/auth',
+      listings: '/api/v1/listings',
+      purchases: '/api/v1/purchases',
+      access: '/api/v1/access',
+      premium: '/api/v1/premium',
+      ipfs: '/api/v1/ipfs'
+    }
+  });
 });
 
 // API routes
@@ -71,6 +95,7 @@ app.use('/api/v1/listings', listingRoutes);
 app.use('/api/v1/purchases', purchaseRoutes);
 app.use('/api/v1/access', accessRoutes);
 app.use('/api/v1/premium', premiumRoutes);
+app.use('/api/v1/ipfs', ipfsRoutes);
 
 // Error handling
 app.use(errorHandler);

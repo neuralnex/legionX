@@ -117,9 +117,9 @@ export const rootAPI = {
 
 // Authentication API
 export const authAPI = {
-  login: async (data: { wallet: string; signature: string }): Promise<AuthResponse> => {
-    console.log("🔐 Auth API: Login request", { wallet: data.wallet })
-    const response = await api.post<AuthResponse>("/api/v1/auth/login", data)
+  login: async (data: { email: string; password: string }): Promise<AuthResponse> => {
+    console.log("🔐 Auth API: Login request", { email: data.email })
+    const response = await api.post<AuthResponse>("/api/v1/auth/login/web2", data)
     return response.data
   },
 
@@ -131,23 +131,20 @@ export const authAPI = {
 
   // Updated to use correct backend endpoints
   register: async (data: RegisterRequest): Promise<AuthResponse> => {
-    console.log("🔐 Auth API: Register request", { wallet: data.wallet })
+    console.log("🔐 Auth API: Register request", { email: data.email })
     const response = await api.post<AuthResponse>("/api/v1/auth/register", data)
     return response.data
   },
 
-  loginWithWallet: async (data: WalletLoginRequest): Promise<AuthResponse> => {
-    console.log("🔐 Auth API: Wallet login request", {
-      wallet: data.wallet,
-      hasRewardAddress: !!data.rewardAddress,
-    })
-    const response = await api.post<AuthResponse>("/api/v1/auth/login/wallet", data)
+  registerWeb2: async (data: { email: string; username: string; firstName: string; lastName: string; password: string }): Promise<AuthResponse> => {
+    console.log("🔐 Auth API: Web2 register request", { email: data.email })
+    const response = await api.post<AuthResponse>("/api/v1/auth/register/web2", data)
     return response.data
   },
 
-  linkWallet: async (data: LinkWalletRequest): Promise<AuthResponse> => {
-    console.log("🔐 Auth API: Link wallet request", { wallet: data.wallet })
-    const response = await api.post<AuthResponse>("/api/v1/auth/link-wallet", data)
+  loginWithEmail: async (data: { email: string }): Promise<AuthResponse> => {
+    console.log("🔐 Auth API: Email login request", { email: data.email })
+    const response = await api.post<AuthResponse>("/api/v1/auth/login/email", data)
     return response.data
   },
 
@@ -184,25 +181,18 @@ export const listingsAPI = {
   },
 
   // Updated to use correct backend endpoint
-  getAll: async (params?: ListingsQuery): Promise<ListingsResponse> => {
-    console.log("📋 Listings API: Get all request", { params })
-    const response = await api.get<ListingsResponse>("/api/v1/listings", { params })
+  getAll: async (filters: ListingsQuery = {}): Promise<ListingsResponse> => {
+    console.log("📋 Listings API: Get all request", filters)
+    const params = new URLSearchParams()
+    
+    if (filters.page) params.append('page', filters.page.toString())
+    if (filters.limit) params.append('limit', filters.limit.toString())
+    if (filters.type) params.append('type', filters.type)
+    if (filters.minPrice) params.append('minPrice', filters.minPrice.toString())
+    if (filters.maxPrice) params.append('maxPrice', filters.maxPrice.toString())
+    if (filters.search) params.append('search', filters.search)
 
-    // Additional validation for listings response
-    if (typeof response.data === "string") {
-      console.error("❌ Listings API returned HTML instead of JSON:", {
-        responseType: typeof response.data,
-        contentStart: (response.data as string).substring(0, 500),
-        possibleCauses: [
-          "Wrong API endpoint URL",
-          "API server returning error page",
-          "CORS preflight returning HTML",
-          "API not properly configured",
-        ],
-      })
-      throw new Error("API returned HTML instead of JSON - check your NEXT_PUBLIC_API_URL configuration")
-    }
-
+    const response = await api.get<ListingsResponse>(`/api/v1/listings?${params}`)
     return response.data
   },
 }
@@ -228,14 +218,20 @@ export const purchasesAPI = {
   },
 
   // Updated to use correct backend endpoints
-  getAll: async (params?: PurchasesQuery): Promise<PurchasesResponse> => {
-    console.log("📋 Purchases API: Get all request", { params })
-    const response = await api.get<PurchasesResponse>("/api/v1/purchases", { params })
+  getAll: async (filters: PurchasesQuery = {}): Promise<PurchasesResponse> => {
+    console.log("📋 Purchases API: Get all request", filters)
+    const params = new URLSearchParams()
+    
+    if (filters.page) params.append('page', filters.page.toString())
+    if (filters.limit) params.append('limit', filters.limit.toString())
+    if (filters.status) params.append('status', filters.status)
+
+    const response = await api.get<PurchasesResponse>(`/api/v1/purchases?${params}`)
     return response.data
   },
 
-  update: async (id: string, data: UpdatePurchaseRequest): Promise<Purchase> => {
-    console.log("✏️ Purchases API: Update request", { id, data })
+  update: async (id: string, data: { status?: "pending" | "completed" | "failed" | "cancelled"; txHash?: string; confirmations?: number }): Promise<Purchase> => {
+    console.log("✏️ Purchases API: Update request", { id })
     const response = await api.put<Purchase>(`/api/v1/purchases/${id}`, data)
     return response.data
   },
@@ -257,19 +253,19 @@ export const premiumAPI = {
 
   getAnalyticsFeatures: async (): Promise<PremiumFeaturesResponse> => {
     console.log("📊 Premium API: Get analytics features request")
-    const response = await api.get<PremiumFeaturesResponse>("/api/v1/premium/analytics/features")
+    const response = await api.get<PremiumFeaturesResponse>("/api/v1/premium/analytics-features")
     return response.data
   },
 
-  purchasePremiumListing: async (listingId: string): Promise<{ message: string }> => {
+  purchasePremiumListing: async (listingId: string): Promise<{ success: boolean; message: string }> => {
     console.log("⭐ Premium API: Purchase premium listing request", { listingId })
-    const response = await api.post(`/api/v1/premium/listing/${listingId}`)
+    const response = await api.post("/api/v1/premium/purchase-listing", { listingId })
     return response.data
   },
 
-  subscribeToAnalytics: async (): Promise<{ message: string }> => {
+  subscribeToAnalytics: async (): Promise<{ success: boolean; message: string }> => {
     console.log("📊 Premium API: Subscribe to analytics request")
-    const response = await api.post("/api/v1/premium/analytics/subscribe")
+    const response = await api.post("/api/v1/premium/subscribe-analytics")
     return response.data
   },
 }
