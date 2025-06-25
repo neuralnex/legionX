@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "LegionX API - Wallet Auth",
+    "name": "LegionX API - Hybrid Auth",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "API for LegionX marketplace with wallet-based authentication"
+    "description": "API for LegionX marketplace with hybrid authentication (fiat-based with optional wallet linking)"
   },
   "item": [
     {
@@ -20,7 +20,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\",\n  \"wallet\": \"addr_test1qz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3jcu5d8ps7zex2k2xt3uqxgjqnnj83ws8lhrn648jjxtwq2ytjqp\"\n}",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"wallet\": \"addr_test1qz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3jcu5d8ps7zex2k2xt3uqxgjqnnj83ws8lhrn648jjxtwq2ytjqp\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -35,7 +35,7 @@
           }
         },
         {
-          "name": "Login with Wallet",
+          "name": "Login with Email/Password",
           "request": {
             "method": "POST",
             "header": [
@@ -46,7 +46,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"wallet\": \"addr_test1qz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3jcu5d8ps7zex2k2xt3uqxgjqnnj83ws8lhrn648jjxtwq2ytjqp\",\n  \"signature\": \"hex_signature_of_challenge\"\n}",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -57,32 +57,6 @@
               "raw": "{{baseUrl}}/auth/login",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "login"]
-            }
-          }
-        },
-        {
-          "name": "Get Auth Challenge",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"wallet\": \"addr_test1qz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3jcu5d8ps7zex2k2xt3uqxgjqnnj83ws8lhrn648jjxtwq2ytjqp\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/auth/challenge",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "challenge"]
             }
           }
         }

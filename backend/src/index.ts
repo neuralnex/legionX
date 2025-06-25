@@ -14,6 +14,7 @@ import purchaseRoutes from './routes/purchase.routes.ts';
 import accessRoutes from './routes/access.routes.ts';
 import premiumRoutes from './routes/premium.routes.ts';
 import ipfsRoutes from './routes/ipfs.routes.ts';
+import platformRoutes from './routes/platform.routes.ts';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware.ts';
@@ -91,7 +92,8 @@ app.get('/', (_req, res) => {
       purchases: '/api/v1/purchases',
       access: '/api/v1/access',
       premium: '/api/v1/premium',
-      ipfs: '/api/v1/ipfs'
+      ipfs: '/api/v1/ipfs',
+      platform: '/api/v1/platform'
     }
   });
 });
@@ -103,6 +105,7 @@ app.use('/api/v1/purchases', purchaseRoutes);
 app.use('/api/v1/access', accessRoutes);
 app.use('/api/v1/premium', premiumRoutes);
 app.use('/api/v1/ipfs', ipfsRoutes);
+app.use('/api/v1/platform', platformRoutes);
 
 // Error handling
 app.use(errorHandler);

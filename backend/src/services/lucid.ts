@@ -134,38 +134,9 @@ export class LucidService {
     }
   }
 
-  // Wallet Management Methods
-  setWalletApi(walletApi: any): void {
-    this.walletApi = walletApi;
-    if (this.walletApi) {
-      this.lucid.selectWallet.fromAPI(this.walletApi);
-      this.logger.info('Wallet API set for transaction signing');
-    } else {
-      this.logger.warn('No wallet API provided');
-    }
-  }
-
-  async connectWallet(walletAddress: string): Promise<void> {
-    try {
-      const utxos = await this.lucid.utxosAt(walletAddress);
-      this.lucid.selectWallet.fromAddress(walletAddress, utxos);
-      this.logger.info(`Wallet connected: ${walletAddress}`);
-    } catch (error) {
-      this.logger.error('Error connecting wallet:', error);
-      throw new Error('Failed to connect wallet');
-    }
-  }
-
-  async connectUserWallet(walletAddress: string, utxos: UTxO[]): Promise<void> {
-    try {
-      this.lucid.selectWallet.fromAddress(walletAddress, utxos);
-      this.logger.info(`User wallet connected: ${walletAddress}`);
-    } catch (error) {
-      this.logger.error('Error connecting user wallet:', error);
-      throw new Error('Failed to connect user wallet');
-    }
-  }
-
+  // Wallet Management Methods - Platform handles all operations
+  // Users don't need to connect wallets as the platform wallet has sufficient tokens
+  
   // Transaction Methods
   private async retry<T>(operation: () => Promise<T>): Promise<T> {
     let lastError: Error | null = null;
@@ -185,10 +156,51 @@ export class LucidService {
 
   async signTransaction(tx: any): Promise<string> {
     try {
+      // Validate transaction before signing
+      if (!tx) {
+        throw new Error('Transaction is null or undefined');
+      }
+
+      // Check for minimum ADA requirements
+      const txBody = tx.toTransaction().body();
+      const outputs = txBody.outputs();
+      for (let i = 0; i < outputs.len(); i++) {
+        const output = outputs.get(i);
+        const value = output.value();
+        const lovelace = value.coin();
+        
+        // Ensure minimum ADA (1 ADA = 1,000,000 lovelace)
+        if (lovelace < 1_000_000n) {
+          this.logger.warn(`Output ${i} has less than 1 ADA: ${lovelace} lovelace`);
+        }
+      }
+
       const signedTx = await tx.sign.withWallet();
-      return await signedTx.submit();
+      
+      // Validate signed transaction
+      if (!signedTx) {
+        throw new Error('Failed to sign transaction');
+      }
+
+      const txHash = await signedTx.submit();
+      this.logger.info(`Transaction submitted successfully: ${txHash}`);
+      return txHash;
     } catch (error) {
       this.logger.error('Error signing transaction:', error);
+      
+      // Provide specific error messages based on common issues
+      if (error instanceof Error) {
+        if (error.message.includes('insufficient')) {
+          throw new Error('Insufficient funds for transaction');
+        } else if (error.message.includes('collateral')) {
+          throw new Error('Insufficient collateral for script execution');
+        } else if (error.message.includes('signature')) {
+          throw new Error('Transaction signature verification failed');
+        } else if (error.message.includes('size')) {
+          throw new Error('Transaction size exceeds limits');
+        }
+      }
+      
       throw new Error('Failed to sign transaction');
     }
   }
@@ -397,23 +409,25 @@ export class LucidService {
     }
   }
 
-  async verifyWalletOwnership(walletAddress: string): Promise<boolean> {
+  // Enhanced fee estimation for maximum amount transactions
+  async estimateMaximumSendableAmount(walletAddress: string): Promise<{ amount: bigint; fee: bigint }> {
     try {
       const utxos = await this.lucid.utxosAt(walletAddress);
-      if (!utxos || utxos.length === 0) {
-        this.logger.warn(`No UTxOs found for wallet: ${walletAddress}`);
-        return false;
-      }
+      const totalBalance = utxos.reduce((sum, utxo) => sum + (utxo.assets.lovelace || 0n), 0n);
       
-      const tx = await this.lucid
+      // Draft transaction to calculate fee
+      const draftTx = await this.lucid
         .newTx()
-        .collectFrom(utxos)
+        .pay.ToAddress(walletAddress, { lovelace: totalBalance })
         .complete();
-        
-      return true;
+      
+      const fee = await draftTx.toTransaction().body().fee();
+      const sendableAmount = totalBalance - fee;
+      
+      return { amount: sendableAmount, fee };
     } catch (error) {
-      this.logger.error('Error verifying wallet ownership:', error);
-      return false;
+      this.logger.error('Error estimating maximum sendable amount:', error);
+      throw new Error('Failed to estimate maximum sendable amount');
     }
   }
 

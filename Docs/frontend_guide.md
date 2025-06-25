@@ -303,6 +303,21 @@ export const useAgentStore = create<AgentStore>((set) => ({
 }));
 ```
 
+### 2. Root State
+```typescript
+interface RootState {
+  auth: {
+    isAuthenticated: boolean;
+    user: User | null;
+    token: string | null;
+  };
+  wallet: {
+    connected: boolean;
+    address: string | null;
+  };
+}
+```
+
 ## API Integration
 
 ### 1. API Client
@@ -544,12 +559,12 @@ The root page features a grid of main navigation buttons, each styled as a card 
    - My Listings
    - My Purchases
    - Profile
-   - These routes redirect to wallet connection if not authenticated
+   - These routes redirect to login if not authenticated
 
 3. **Public Routes**
    - Browse Listings
    - Home page
-   - These are accessible without wallet connection
+   - These are accessible without authentication
 
 ### Responsive Design
 
@@ -562,12 +577,14 @@ The root page features a grid of main navigation buttons, each styled as a card 
 
 ```typescript
 interface RootState {
+  auth: {
+    isAuthenticated: boolean;
+    user: User | null;
+    token: string | null;
+  };
   wallet: {
     connected: boolean;
     address: string | null;
-  };
-  user: {
-    profile: UserProfile | null;
   };
 }
 ```
@@ -598,7 +615,7 @@ interface RootState {
 - Minimal initial bundle size
 - Efficient state updates
 
-This guide provides a foundation for implementing the root page and navigation system. The layout is designed to be intuitive, responsive, and user-friendly while maintaining security through wallet-based authentication.
+This guide provides a foundation for implementing the root page and navigation system. The layout is designed to be intuitive, responsive, and user-friendly while maintaining security through hybrid authentication (fiat-based with optional wallet linking).
 
 ## Authentication Components
 
@@ -606,12 +623,11 @@ This guide provides a foundation for implementing the root page and navigation s
 ```typescript
 // components/auth/AuthProvider.tsx
 import { createContext, useContext, useState, useEffect } from 'react';
-import { useWallet } from '../hooks/useWallet';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (wallet: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -621,27 +637,30 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const { address, isConnected } = useWallet();
 
   useEffect(() => {
     const checkAuth = async () => {
-      if (isConnected && address) {
+      const token = localStorage.getItem('token');
+      if (token) {
         try {
-          const response = await api.post('/login/wallet', { wallet: address });
+          const response = await api.get('/auth/verify', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
           setUser(response.data.user);
         } catch (error) {
           console.error('Auth check failed:', error);
+          localStorage.removeItem('token');
         }
       }
       setLoading(false);
     };
 
     checkAuth();
-  }, [isConnected, address]);
+  }, []);
 
-  const login = async (wallet: string) => {
+  const login = async (email: string, password: string) => {
     try {
-      const response = await api.post('/login/wallet', { wallet });
+      const response = await api.post('/auth/login', { email, password });
       setUser(response.data.user);
       localStorage.setItem('token', response.data.token);
     } catch (error) {
@@ -690,27 +709,29 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { useWallet } from '../hooks/useWallet';
 
 const Login = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
-  const { address, connect } = useWallet();
 
-  const handleLogin = async () => {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    
     try {
-      if (!address) {
-        await connect();
-        return;
-      }
-      
-      await login(address);
+      await login(email, password);
       const from = location.state?.from?.pathname || '/';
       navigate(from, { replace: true });
     } catch (error) {
-      setError('Login failed. Please try again.');
+      setError('Login failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -720,7 +741,7 @@ const Login = () => {
         <div>
           <h2 className="text-center text-3xl font-bold">Welcome to LegionX</h2>
           <p className="mt-2 text-center text-gray-600">
-            Connect your wallet to continue
+            Sign in to your account
           </p>
         </div>
 
@@ -730,14 +751,43 @@ const Login = () => {
           </div>
         )}
 
-        <div className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+
           <button
-            onClick={handleLogin}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700"
+            type="submit"
+            disabled={loading}
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
           >
-            {address ? 'Login with Wallet' : 'Connect Wallet'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );
@@ -889,11 +939,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 ```
 
 This authentication system provides:
-- Wallet-based authentication
+- Hybrid authentication (fiat-based with optional wallet linking)
 - Protected routes
 - Persistent sessions
 - Automatic token management
 - Secure API communication
 - User profile management
 
-The system integrates with the existing wallet connection and provides a seamless authentication experience for users. 
+The system integrates with the existing wallet connection for blockchain operations while providing a seamless fiat-based authentication experience for users. 

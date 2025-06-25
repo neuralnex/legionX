@@ -12,20 +12,22 @@ https://localhost:3000
 
 ## Authentication
 
-The authentication system follows a specific flow:
+The authentication system follows a hybrid approach:
 
-1. **Registration First**: Users must register first using the `/api/v1/auth/register` endpoint, which requires:
+1. **Registration**: Users register using the `/api/v1/auth/register` endpoint, which requires:
    - Email
-   - Wallet address
+   - Password
+   - Optional wallet address
 
-2. **Wallet Connection**: After registration, users can:
-   - Login using their wallet via `/api/v1/auth/login/wallet`
-   - Link a wallet to their account via `/api/v1/auth/link-wallet`
+2. **Login**: Users can login using:
+   - Email and password via `/api/v1/auth/login`
+   - Optional wallet linking via `/api/v1/auth/link-wallet` for blockchain operations
 
 This design ensures that:
-- Every user has an email associated with their account
-- Users can have multiple wallets linked to their account
-- The system maintains a clear separation between registration and wallet management
+- Authentication is primarily fiat-based (email/password)
+- Wallet linking is optional for blockchain operations
+- The system maintains security while being accessible to non-crypto users
+- Blockchain smart contracts handle token management and role enforcement
 
 Most endpoints require authentication using a JWT token. Include the token in the Authorization header:
 
@@ -77,6 +79,7 @@ Content-Type: application/json
 
 {
   "email": "user@example.com",
+  "password": "password123",
   "wallet": "addr_test..."
 }
 ```
@@ -94,14 +97,14 @@ Response:
 }
 ```
 
-#### Login with Wallet
+#### Login with Email and Password
 ```http
-POST /api/v1/auth/login/wallet
+POST /api/v1/auth/login
 Content-Type: application/json
 
 {
-  "wallet": "addr_test...",
-  "signature": "signed_message"
+  "email": "user@example.com",
+  "password": "password123"
 }
 ```
 
